@@ -1,6 +1,31 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
+<!-- Barra de Busca -->
+<div class="container mb-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="search-container position-relative">
+                <input type="text" id="barra-busca" class="form-control form-control-lg" 
+                       placeholder="O que você está procurando?" value="{{ termo_busca|default:'' }}">
+                <div id="sugestoes-busca" class="sugestoes-lista"></div>
+                <button class="btn btn-primary position-absolute end-0 top-0 h-100" id="btn-busca">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            {% if termo_busca %}
+            <div class="mt-2 text-center">
+                <small class="text-muted">
+                    Buscando por: "{{ termo_busca }}"
+                    <a href="/" class="text-danger ms-2">(Limpar busca)</a>
+                </small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 <!-- Categorias -->
 <section class="mb-5">
     <h2 class="text-center mb-4">Categorias em Destaque</h2>
@@ -47,32 +72,33 @@
 <!-- Produtos -->
 <section id="products" class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Nossos Produtos</h2>
+        <h2>{% if termo_busca %}Resultados da Busca{% else %}Nossos Produtos{% endif %}</h2>
         <div>
-            <select class="form-select form-select-sm w-auto d-inline-block">
-                <option>Ordenar por: Mais Vendidos</option>
-                <option>Preço: Menor para Maior</option>
-                <option>Preço: Maior para Menor</option>
-                <option>Nome A-Z</option>
+            <select class="form-select form-select-sm w-auto d-inline-block" id="filtro-ordenacao">
+                <option value="mais-vendidos">Ordenar por: Mais Vendidos</option>
+                <option value="preco-menor">Preço: Menor para Maior</option>
+                <option value="preco-maior">Preço: Maior para Menor</option>
+                <option value="nome-az">Nome A-Z</option>
             </select>
         </div>
     </div>
 
-    <div class="row">
+    <div class="row" id="container-produtos">
         {% for produto in produtos %}
-        <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card product-card">
+        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+            <div class="card product-card h-100">
                 <div class="product-img-container position-relative">
                     {% if produto.imagem %}
-                    <img src="{{ produto.imagem.url }}" class="card-img-top product-img" alt="{{ produto.nome }}">
+                    <img src="{{ produto.imagem.url }}" class="card-img-top product-img" alt="{{ produto.nome }}"
+                         style="height: 200px; object-fit: cover;">
                     {% else %}
-                    <div class="card-img-top product-img bg-light d-flex align-items-center justify-content-center">
+                    <div class="card-img-top product-img bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                         <span class="text-muted">Sem imagem</span>
                     </div>
                     {% endif %}
 
                     <div class="product-actions">
-                        <button class="btn btn-sm btn-light rounded-circle">
+                        <button class="btn btn-sm btn-light rounded-circle btn-favorito">
                             <i class="far fa-heart"></i>
                         </button>
                     </div>
@@ -82,10 +108,10 @@
                     {% endif %}
                 </div>
 
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h5 class="card-title">{{ produto.nome }}</h5>
-                        <button class="btn btn-sm btn-link p-0">
+                        <button class="btn btn-sm btn-link p-0 btn-compartilhar" data-produto-id="{{ produto.id }}">
                             <i class="fas fa-share-alt"></i>
                         </button>
                     </div>
@@ -108,7 +134,7 @@
                         <span class="h5 text-primary">R$ {{ produto.preco }}</span>
                     </div>
 
-                    <div class="d-grid gap-2">
+                    <div class="d-grid gap-2 mt-auto">
                         <button class="btn btn-primary btn-add-cart btn-adicionar-carrinho" 
                                 data-produto-id="{{ produto.id }}" 
                                 data-produto-nome="{{ produto.nome }}">
@@ -121,22 +147,248 @@
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4>Nenhum produto encontrado</h4>
+            <p class="text-muted">Tente usar outros termos de busca</p>
+            <a href="/" class="btn btn-primary">Ver todos os produtos</a>
+        </div>
         {% endfor %}
     </div>
 
     <!-- Paginação -->
+    {% if produtos.has_other_pages %}
     <nav class="mt-5">
         <ul class="pagination justify-content-center">
+            {% if produtos.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ produtos.previous_page_number }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">Anterior</a>
+            </li>
+            {% else %}
             <li class="page-item disabled">
                 <a class="page-link" href="#">Anterior</a>
             </li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            {% endif %}
+
+            {% for i in produtos.paginator.page_range %}
+            <li class="page-item {% if produtos.number == i %}active{% endif %}">
+                <a class="page-link" href="?page={{ i }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">{{ i }}</a>
+            </li>
+            {% endfor %}
+
+            {% if produtos.has_next %}
             <li class="page-item">
+                <a class="page-link" href="?page={{ produtos.next_page_number }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">Próximo</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
                 <a class="page-link" href="#">Próximo</a>
             </li>
+            {% endif %}
         </ul>
     </nav>
+    {% endif %}
 </section>
+
+<!-- Modal de Newsletter -->
+<div id="modal-newsletter" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Fique por dentro das novidades!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Cadastre-se em nossa newsletter e receba ofertas exclusivas!</p>
+                <form class="newsletter-form" id="form-newsletter">
+                    <div class="mb-3">
+                        <input type="email" class="form-control" id="email-newsletter" placeholder="Seu melhor e-mail" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Área de notificações toast -->
+<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CONFIGURAÇÃO PRINCIPAL
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Página carregada - configurando funcionalidades');
+    
+    // 1. CONFIGURAR BUSCA
+    const barraBusca = document.getElementById('barra-busca');
+    const btnBusca = document.getElementById('btn-busca');
+    
+    if (barraBusca && btnBusca) {
+        btnBusca.onclick = function() {
+            const termo = barraBusca.value.trim();
+            if (termo) {
+                window.location.href = '/?search=' + encodeURIComponent(termo);
+            } else {
+                alert('Digite algo para buscar');
+            }
+        };
+        
+        barraBusca.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnBusca.click();
+            }
+        });
+    }
+    
+    // 2. NEWSLETTER INTELIGENTE (SÓ UMA VEZ POR SESSÃO)
+    const formNewsletter = document.getElementById('form-newsletter');
+    if (formNewsletter) {
+        formNewsletter.onsubmit = function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email-newsletter').value;
+            if (email.includes('@')) {
+                alert('E-mail cadastrado com sucesso! Obrigado!');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modal-newsletter'));
+                modal.hide();
+                localStorage.setItem('newsletterFechado', 'true');
+            } else {
+                alert('Por favor, insira um e-mail válido');
+            }
+        };
+    }
+    
+    // 3. NEWSLETTER SÓ ABRE UMA VEZ (por sessão)
+    const newsletterJaVisto = sessionStorage.getItem('newsletterVisto');
+    const newsletterBloqueado = localStorage.getItem('newsletterFechado') === 'true';
+    
+    if (!newsletterBloqueado && !newsletterJaVisto) {
+        setTimeout(() => {
+            const newsletterModal = new bootstrap.Modal(document.getElementById('modal-newsletter'));
+            newsletterModal.show();
+            sessionStorage.setItem('newsletterVisto', 'true');
+        }, 10000);
+    }
+    
+    // 4. Configurações básicas de interação
+    document.querySelectorAll('.btn-favorito').forEach(btn => {
+        btn.onclick = function() {
+            const icon = this.querySelector('i');
+            icon.classList.toggle('far');
+            icon.classList.toggle('fas');
+            this.classList.toggle('btn-light');
+            this.classList.toggle('btn-danger');
+            alert('Produto adicionado aos favoritos!');
+        };
+    });
+    
+    // 5. Compartilhamento de produtos
+    document.querySelectorAll('.btn-compartilhar').forEach(btn => {
+        btn.onclick = function() {
+            const produtoId = this.dataset.produtoId;
+            const link = window.location.origin + '/produto/' + produtoId + '/';
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(link)
+                    .then(() => alert('Link copiado para a área de transferência!'))
+                    .catch(() => alert('Erro ao copiar link.'));
+            } else {
+                // Fallback para método antigo
+                const textArea = document.createElement('textarea');
+                textArea.value = link;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Link copiado!');
+            }
+        };
+    });
+    
+    // 6. Ordenação de produtos
+    const filtroOrdenacao = document.getElementById('filtro-ordenacao');
+    if (filtroOrdenacao) {
+        filtroOrdenacao.addEventListener('change', function() {
+            // Esta função será implementada conforme sua lógica de ordenação
+            console.log('Ordenar por:', this.value);
+        });
+    }
+});
+
+// Função de fallback para notificações
+function mostrarNotificacao(mensagem, tipo = 'info') {
+    alert(mensagem);
+}
+</script>
+
+<style>
+.search-container {
+    position: relative;
+}
+
+.sugestoes-lista {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.sugestao-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.sugestao-item:hover {
+    background-color: #f8f9fa;
+}
+
+.sugestao-item:last-child {
+    border-bottom: none;
+}
+
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.category-card {
+    transition: transform 0.3s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-3px);
+}
+
+.toast-container {
+    z-index: 1090;
+}
+
+@media (max-width: 768px) {
+    .search-container {
+        margin-bottom: 1rem;
+    }
+    
+    .sugestoes-lista {
+        max-height: 150px;
+    }
+}
+</style>
 {% endblock %}
