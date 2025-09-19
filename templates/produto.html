@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ produto.nome }} - Minha Loja{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-md-6">
+        <div class="product-gallery">
+            {% if produto.imagem %}
+            <img src="{{ produto.imagem.url }}" class="product-main-img img-fluid rounded" alt="{{ produto.nome }}">
+            {% else %}
+            <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 400px;">
+                <span class="text-muted">Sem imagem</span>
+            </div>
+            {% endif %}
+            
+            <div class="thumbnails">
+                {% if produto.imagem %}
+                <img src="{{ produto.imagem.url }}" class="thumbnail active" alt="Thumbnail 1">
+                {% endif %}
+                <!-- Adicionar mais thumbnails se disponíveis -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+                <li class="breadcrumb-item"><a href="#">Categoria</a></li>
+                <li class="breadcrumb-item active">{{ produto.nome }}</li>
+            </ol>
+        </nav>
+        
+        <h1 class="mb-2">{{ produto.nome }}</h1>
+        
+        <div class="d-flex align-items-center mb-3">
+            <div class="text-warning me-3">
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star-half-alt"></i>
+            </div>
+            <span class="text-muted">(128 avaliações)</span>
+        </div>
+        
+        <div class="mb-4">
+            {% if produto.preco_original %}
+            <span class="text-muted text-decoration-line-through h5">R$ {{ produto.preco_original }}</span>
+            <span class="text-danger h3 ms-2">R$ {{ produto.preco }}</span>
+            {% else %}
+            <span class="h3 text-primary">R$ {{ produto.preco }}</span>
+            {% endif %}
+            
+            {% if produto.desconto %}
+            <span class="badge bg-danger ms-2">{{ produto.desconto }}% OFF</span>
+            {% endif %}
+        </div>
+        
+        <p class="mb-4">{{ produto.descricao }}</p>
+        
+        <div class="row mb-4">
+            <div class="col-auto">
+                <label for="quantity" class="col-form-label">Quantidade:</label>
+            </div>
+            <div class="col-auto">
+                <div class="input-group" style="width: 120px;">
+                    <button class="btn btn-outline-secondary" type="button" id="decrement">-</button>
+                    <input type="text" class="form-control text-center" value="1" id="quantity">
+                    <button class="btn btn-outline-secondary" type="button" id="increment">+</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex">
+            <button class="btn btn-primary btn-lg flex-fill btn-adicionar-carrinho" 
+                    data-produto-id="{{ produto.id }}" 
+                    data-produto-nome="{{ produto.nome }}">
+                <i class="fas fa-shopping-cart me-2"></i>Adicionar ao Carrinho
+            </button>
+            <button class="btn btn-outline-danger btn-lg">
+                <i class="far fa-heart me-2"></i>Favoritar
+            </button>
+        </div>
+        
+        <hr class="my-4">
+        
+        <div class="d-flex">
+            <div class="me-4">
+                <i class="fas fa-truck text-primary me-2"></i>
+                <span>Entrega grátis</span>
+            </div>
+            <div class="me-4">
+                <i class="fas fa-undo text-primary me-2"></i>
+                <span>Devolução em 30 dias</span>
+            </div>
+            <div>
+                <i class="fas fa-shield-alt text-primary me-2"></i>
+                <span>Garantia do vendedor</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Descrição e Detalhes -->
+<div class="row">
+    <div class="col-12">
+        <ul class="nav nav-tabs" id="productTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab">Descrição</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="specs-tab" data-bs-toggle="tab" data-bs-target="#specs" type="button" role="tab">Especificações</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">Avaliações (128)</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content p-3 border-start border-end border-bottom" id="productTabsContent">
+            <div class="tab-pane fade show active" id="description" role="tabpanel">
+                <p>{{ produto.descricao }}</p>
+            </div>
+            <div class="tab-pane fade" id="specs" role="tabpanel">
+                <table class="table">
+                    <tr>
+                        <th>Marca</th>
+                        <td>Marca Exemplo</td>
+                    </tr>
+                    <tr>
+                        <th>Modelo</th>
+                        <td>XYZ-123</td>
+                    </tr>
+                    <!-- Adicionar mais especificações -->
+                </table>
+            </div>
+            <div class="tab-pane fade" id="reviews" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h2 class="text-primary">4.5</h2>
+                            <div class="text-warning mb-2">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <p class="text-muted">Baseado em 128 avaliações</p>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <!-- Avaliações -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Produtos Relacionados -->
+<section class="mt-5">
+    <h3 class="mb-4">Produtos Relacionados</h3>
+    <div class="row">
+        <!-- Incluir produtos relacionados aqui -->
+    </div>
+</section>
+
+<script>
+    // Controle de quantidade
+    document.getElementById('increment').addEventListener('click', function() {
+        const quantityInput = document.getElementById('quantity');
+        quantityInput.value = parseInt(quantityInput.value) + 1;
+    });
+    
+    document.getElementById('decrement').addEventListener('click', function() {
+        const quantityInput = document.getElementById('quantity');
+        if (parseInt(quantityInput.value) > 1) {
+            quantityInput.value = parseInt(quantityInput.value) - 1;
+        }
+    });
+</script>
+{% endblock %}

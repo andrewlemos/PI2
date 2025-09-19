@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Categorias -->
+<section class="mb-5">
+    <h2 class="text-center mb-4">Categorias em Destaque</h2>
+    <div class="row g-3">
+        <div class="col-md-3 col-6">
+            <div class="card category-card text-center border-0 shadow-sm">
+                <div class="card-body py-4">
+                    <i class="fas fa-broom fa-2x text-primary mb-3"></i>
+                    <h5 class="card-title">Detergentes</h5>
+                    <p class="text-muted small">Limpeza doméstica diária</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card category-card text-center border-0 shadow-sm">
+                <div class="card-body py-4">
+                    <i class="fas fa-spray-can fa-2x text-primary mb-3"></i>
+                    <h5 class="card-title">Desinfetantes</h5>
+                    <p class="text-muted small">Proteção contra germes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card category-card text-center border-0 shadow-sm">
+                <div class="card-body py-4">
+                    <i class="fas fa-soap fa-2x text-primary mb-3"></i>
+                    <h5 class="card-title">Esponjas e Panos</h5>
+                    <p class="text-muted small">Para todas as superfícies</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card category-card text-center border-0 shadow-sm">
+                <div class="card-body py-4">
+                    <i class="fas fa-industry fa-2x text-primary mb-3"></i>
+                    <h5 class="card-title">Limpeza Pesada</h5>
+                    <p class="text-muted small">Produtos profissionais</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Produtos -->
+<section id="products" class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Nossos Produtos</h2>
+        <div>
+            <select class="form-select form-select-sm w-auto d-inline-block">
+                <option>Ordenar por: Mais Vendidos</option>
+                <option>Preço: Menor para Maior</option>
+                <option>Preço: Maior para Menor</option>
+                <option>Nome A-Z</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for produto in produtos %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card product-card">
+                <div class="product-img-container position-relative">
+                    {% if produto.imagem %}
+                    <img src="{{ produto.imagem.url }}" class="card-img-top product-img" alt="{{ produto.nome }}">
+                    {% else %}
+                    <div class="card-img-top product-img bg-light d-flex align-items-center justify-content-center">
+                        <span class="text-muted">Sem imagem</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="product-actions">
+                        <button class="btn btn-sm btn-light rounded-circle">
+                            <i class="far fa-heart"></i>
+                        </button>
+                    </div>
+
+                    {% if produto.desconto %}
+                    <span class="position-absolute top-0 start-0 m-2 badge bg-danger">{{ produto.desconto }}% OFF</span>
+                    {% endif %}
+                </div>
+
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title">{{ produto.nome }}</h5>
+                        <button class="btn btn-sm btn-link p-0">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                    </div>
+
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="text-warning small me-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                        </div>
+                        <span class="text-muted small">(128)</span>
+                    </div>
+
+                    <div class="mb-3">
+                        {% if produto.preco_original %}
+                        <span class="text-muted text-decoration-line-through me-2">R$ {{ produto.preco_original }}</span>
+                        {% endif %}
+                        <span class="h5 text-primary">R$ {{ produto.preco }}</span>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary btn-add-cart btn-adicionar-carrinho" 
+                                data-produto-id="{{ produto.id }}" 
+                                data-produto-nome="{{ produto.nome }}">
+                            Adicionar ao Carrinho
+                        </button>
+                        <a href="{% url 'produto_detalhe' produto.id %}" class="btn btn-outline-secondary">
+                            Ver Detalhes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginação -->
+    <nav class="mt-5">
+        <ul class="pagination justify-content-center">
+            <li class="page-item disabled">
+                <a class="page-link" href="#">Anterior</a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+                <a class="page-link" href="#">Próximo</a>
+            </li>
+        </ul>
+    </nav>
+</section>
+{% endblock %}
