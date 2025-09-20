@@ -358,6 +358,10 @@ function finalizarCompra() {
             return;
         }
         
+        // Obter dados do formulário
+        const formData = new FormData(form);
+        const dadosEntrega = Object.fromEntries(formData.entries());
+        
         // Simular processo de pagamento
         const btn = document.getElementById('btn-finalizar-pagamento');
         if (btn) {
@@ -365,19 +369,44 @@ function finalizarCompra() {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Processando...';
         }
         
-        // Simular delay do processamento
-        setTimeout(() => {
-            mostrarNotificacao('Compra finalizada com sucesso!', 'success');
+        // ENVIAR DADOS PARA O SERVIDOR
+        fetch('/api/finalizar-compra/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                itens: carrinho,
+                dados_entrega: dadosEntrega
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarNotificacao('Compra finalizada com sucesso! Estoque atualizado.', 'success');
+                
+                // Limpar carrinho após compra
+                sessionStorage.removeItem('carrinho');
+                atualizarContadorCarrinho();
+                
+                // Redirecionar para página de confirmação
+                setTimeout(() => {
+                    window.location.href = `/compra-confirmada/?pedido_id=${data.pedido_id}`;
+                }, 2000);
+            } else {
+                throw new Error(data.message || 'Erro ao finalizar compra');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao finalizar compra:', error);
+            mostrarNotificacao(error.message || 'Erro ao finalizar compra. Tente novamente.', 'error');
             
-            // Limpar carrinho após compra
-            sessionStorage.removeItem('carrinho');
-            atualizarContadorCarrinho();
-            
-            // Redirecionar para página inicial após 2 segundos
-            setTimeout(() => {
-                window.location.href = "/";
-            }, 2000);
-        }, 2000);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Finalizar Pagamento';
+            }
+        });
         
     } catch (error) {
         console.error('Erro ao finalizar compra:', error);
@@ -391,6 +420,95 @@ function finalizarCompra() {
     }
 }
 
+// Adicione esta função para verificar estoque antes de adicionar ao carrinho
+function verificarEstoqueAntesDeAdicionar(produtoId, quantidade) {
+    return fetch('/api/verificar-estoque/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+            produto_id: produtoId,
+            quantidade: quantidade
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        return data;
+    });
+}
+
+// Modifique a função adicionarAoCarrinho para verificar estoque
+async function adicionarAoCarrinho(produto) {
+    console.log('Tentando adicionar produto:', produto);
+    
+    try {
+        // Verificar estoque primeiro
+        const estoqueInfo = await verificarEstoqueAntesDeAdicionar(produto.id, produto.quantidade);
+        
+        if (!estoqueInfo.pode_adicionar) {
+            mostrarNotificacao('Produto esgotado!', 'error');
+            return false;
+        }
+        
+        if (!estoqueInfo.disponivel) {
+            mostrarNotificacao(`Estoque insuficiente. Disponível: ${estoqueInfo.estoque_atual} unidades`, 'error');
+            return false;
+        }
+        
+        let carrinho = JSON.parse(sessionStorage.getItem('carrinho')) || [];
+        
+        // Resto da função permanece igual...
+        const produtoExistenteIndex = carrinho.findIndex(item => item.id === produto.id.toString());
+        
+        if (produtoExistenteIndex !== -1) {
+            const novaQuantidade = carrinho[produtoExistenteIndex].quantidade + produto.quantidade;
+            
+            // Verificar estoque novamente para a quantidade total
+            const estoqueTotalInfo = await verificarEstoqueAntesDeAdicionar(produto.id, novaQuantidade);
+            
+            if (!estoqueTotalInfo.disponivel) {
+                mostrarNotificacao(`Não há estoque suficiente para ${novaQuantidade} unidades. Disponível: ${estoqueTotalInfo.estoque_atual}`, 'error');
+                return false;
+            }
+            
+            carrinho[produtoExistenteIndex].quantidade = novaQuantidade;
+        } else {
+            carrinho.push(produto);
+        }
+        
+        sessionStorage.setItem('carrinho', JSON.stringify(carrinho));
+        atualizarContadorCarrinho();
+        
+        mostrarNotificacao(`${produto.quantidade}x ${produto.nome} adicionado ao carrinho!`, 'success');
+        return true;
+        
+    } catch (error) {
+        console.error('Erro ao adicionar ao carrinho:', error);
+        mostrarNotificacao(error.message || 'Erro ao verificar estoque.', 'error');
+        return false;
+    }
+}
+
+// Função auxiliar para obter o token CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 // Função de notificação
 function mostrarNotificacao(mensagem, tipo = 'info') {
     try {

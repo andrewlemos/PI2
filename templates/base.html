@@ -47,6 +47,7 @@
             <div class="d-flex align-items-center">
                 {% if user.is_authenticated %}
                     <span class="navbar-text me-3">Olá, {{ user.username }}</span>
+                    <a href="{% url 'meus_pedidos' %}" class="btn btn-outline-success me-2">Meus Pedidos</a>
                     <a href="{% url 'account_logout' %}" class="btn btn-outline-secondary me-2">Sair</a>
                 {% else %}
                     <a href="{% url 'account_login' %}" class="btn btn-outline-primary me-2">Entrar</a>

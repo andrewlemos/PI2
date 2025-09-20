@@ -1,0 +1,37 @@
+<!-- templates/compra_confirmada.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle fa-5x text-success"></i>
+                    </div>
+                    
+                    <h2 class="mb-3">Compra Confirmada!</h2>
+                    <p class="text-muted mb-4">Seu pedido foi processado com sucesso e o estoque foi atualizado.</p>
+                    
+                    {% if pedido_id %}
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">Número do Pedido</h5>
+                        <p class="mb-0 fs-4">#{{ pedido_id }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="/" class="btn btn-primary me-3">
+                            <i class="fas fa-shopping-cart me-2"></i>Continuar Comprando
+                        </a>
+                        <a href="{% url 'meus_pedidos' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-list me-2"></i>Ver Meus Pedidos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

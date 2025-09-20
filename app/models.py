@@ -9,7 +9,7 @@ class Produto(models.Model):
     desconto = models.IntegerField(null=True, blank=True)
     estoque = models.IntegerField(default=0)
     imagem = models.ImageField(upload_to='produtos/', blank=True, null=True)
-    disponivel = models.BooleanField(default=True)  # Adicionei este campo
+    disponivel = models.BooleanField(default=True)
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
 
@@ -43,7 +43,14 @@ class Pedido(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     id_mercado_pago = models.CharField(max_length=100, blank=True)
-    # Removi o ManyToManyField direto e uso apenas através do ItemPedido
+
+    # Campos de entrega
+    nome_entrega = models.CharField(max_length=100)
+    email_entrega = models.EmailField()
+    endereco = models.CharField(max_length=200)
+    cidade = models.CharField(max_length=50)
+    estado = models.CharField(max_length=50)
+    cep = models.CharField(max_length=9, default='00000-000')
 
     def __str__(self):
         return f"Pedido {self.id} - {self.usuario.username}"
@@ -54,17 +61,20 @@ class Pedido(models.Model):
         self.save()
         return total
 
+    def endereco_completo(self):
+        return f"{self.endereco}, {self.cidade} - {self.estado}, CEP: {self.cep}"
+
 class ItemPedido(models.Model):
     pedido = models.ForeignKey(Pedido, related_name='itens', on_delete=models.CASCADE)
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE)
     quantidade = models.IntegerField(default=1)
     preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
 
-    def __str__(self):
-        return f"{self.quantidade}x {self.produto.nome}"
-    
     def subtotal(self):
         return self.quantidade * self.preco_unitario
+
+    def __str__(self):
+        return f"{self.quantidade}x {self.produto.nome}"
 
     class Meta:
         verbose_name = 'Item do Pedido'

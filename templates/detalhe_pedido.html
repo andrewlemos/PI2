@@ -1,0 +1,57 @@
+<!-- templates/detalhe_pedido.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Detalhes do Pedido #{{ pedido.id }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Informações do Pedido</h6>
+                            <p><strong>Data:</strong> {{ pedido.criado_em|date:"d/m/Y H:i" }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-{% if pedido.status == 'entregue' %}success{% elif pedido.status == 'cancelado' %}danger{% else %}warning{% endif %}">
+                                    {{ pedido.get_status_display }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Valores</h6>
+                            <p><strong>Total:</strong> R$ {{ pedido.valor_total }}</p>
+                        </div>
+                    </div>
+
+                    <h6>Itens do Pedido</h6>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Quantidade</th>
+                                    <th>Preço Unitário</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in pedido.itens.all %}
+                                <tr>
+                                    <td>{{ item.produto.nome }}</td>
+                                    <td>{{ item.quantidade }}</td>
+                                    <td>R$ {{ item.preco_unitario }}</td>
+                                    <td>R$ {{ item.subtotal }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
