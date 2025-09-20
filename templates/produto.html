@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ produto.nome }} - Minha Loja{% endblock %}
 
@@ -18,7 +19,6 @@
                 {% if produto.imagem %}
                 <img src="{{ produto.imagem.url }}" class="thumbnail active" alt="Thumbnail 1">
                 {% endif %}
-                <!-- Adicionar mais thumbnails se disponíveis -->
             </div>
         </div>
     </div>
@@ -67,7 +67,7 @@
             <div class="col-auto">
                 <div class="input-group" style="width: 120px;">
                     <button class="btn btn-outline-secondary" type="button" id="decrement">-</button>
-                    <input type="text" class="form-control text-center" value="1" id="quantity">
+                    <input type="number" class="form-control text-center" value="1" id="quantity" min="1">
                     <button class="btn btn-outline-secondary" type="button" id="increment">+</button>
                 </div>
             </div>
@@ -75,8 +75,10 @@
         
         <div class="d-grid gap-2 d-md-flex">
             <button class="btn btn-primary btn-lg flex-fill btn-adicionar-carrinho" 
-                    data-produto-id="{{ produto.id }}" 
-                    data-produto-nome="{{ produto.nome }}">
+                    data-produto-id="{{ produto.id }}"
+                    data-produto-nome="{{ produto.nome|escapejs }}"
+                    data-produto-preco="{{ produto.preco }}"
+                    data-produto-imagem="{% if produto.imagem %}{{ produto.imagem.url }}{% else %}{% static 'img/sem-imagem.jpg' %}{% endif %}">
                 <i class="fas fa-shopping-cart me-2"></i>Adicionar ao Carrinho
             </button>
             <button class="btn btn-outline-danger btn-lg">
@@ -132,7 +134,6 @@
                         <th>Modelo</th>
                         <td>XYZ-123</td>
                     </tr>
-                    <!-- Adicionar mais especificações -->
                 </table>
             </div>
             <div class="tab-pane fade" id="reviews" role="tabpanel">
@@ -167,19 +168,72 @@
     </div>
 </section>
 
-<script src="{% static 'js/main.js' %}"></script>
 <script>
     // Controle de quantidade
     document.getElementById('increment').addEventListener('click', function() {
         const quantityInput = document.getElementById('quantity');
-        quantityInput.value = parseInt(quantityInput.value) + 1;
+        const currentValue = parseInt(quantityInput.value) || 1;
+        quantityInput.value = currentValue + 1;
     });
     
     document.getElementById('decrement').addEventListener('click', function() {
         const quantityInput = document.getElementById('quantity');
-        if (parseInt(quantityInput.value) > 1) {
-            quantityInput.value = parseInt(quantityInput.value) - 1;
+        const currentValue = parseInt(quantityInput.value) || 1;
+        if (currentValue > 1) {
+            quantityInput.value = currentValue - 1;
         }
+    });
+
+    // Adicionar ao carrinho
+    document.querySelectorAll('.btn-adicionar-carrinho').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const produtoId = this.dataset.produtoId;
+            const produtoNome = this.dataset.produtoNome;
+            const produtoPreco = parseFloat(this.dataset.produtoPreco);
+            const produtoImagem = this.dataset.produtoImagem;
+            const quantidade = parseInt(document.getElementById('quantity').value) || 1;
+            
+            // Validar dados antes de adicionar
+            if (!produtoId || !produtoNome || isNaN(produtoPreco)) {
+                console.error('Dados do produto inválidos:', {produtoId, produtoNome, produtoPreco});
+                alert('Erro ao adicionar produto. Dados inválidos.');
+                return;
+            }
+            
+            // Verificar se a função adicionarAoCarrinho existe
+            if (typeof adicionarAoCarrinho === 'function') {
+                adicionarAoCarrinho({
+                    id: produtoId,
+                    nome: produtoNome,
+                    preco: produtoPreco,
+                    imagem: produtoImagem,
+                    quantidade: quantidade
+                });
+            } else {
+                console.error('Função adicionarAoCarrinho não encontrada');
+                alert('Erro: Sistema de carrinho não carregado. Recarregue a página.');
+            }
+        });
+    });
+
+    // Verificar se o carrinho.js foi carregado
+    document.addEventListener('DOMContentLoaded', function() {
+        // Garantir que o input de quantidade seja numérico
+        const quantityInput = document.getElementById('quantity');
+        if (quantityInput) {
+            quantityInput.addEventListener('change', function() {
+                let value = parseInt(this.value) || 1;
+                if (value < 1) value = 1;
+                this.value = value;
+            });
+        }
+        
+        // Verificar se o carrinho.js foi carregado
+        setTimeout(function() {
+            if (typeof adicionarAoCarrinho !== 'function') {
+                console.warn('carrinho.js não carregado corretamente');
+            }
+        }, 1000);
     });
 </script>
 {% endblock %}

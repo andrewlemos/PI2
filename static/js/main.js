@@ -128,47 +128,7 @@ function configurarEventListenersGlobais() {
     });
 }
 
-// ========== NOTIFICAÇÕES TOAST ==========
-function mostrarNotificacao(mensagem, tipo = 'info') {
-    const toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        alert(mensagem);
-        return;
-    }
-    
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-bg-${tipo === 'error' ? 'danger' : tipo === 'success' ? 'success' : 'primary'} border-0`;
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">${mensagem}</div>
-            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    
-    toastContainer.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
-    bsToast.show();
-    
-    toast.addEventListener('hidden.bs.toast', function() {
-        toast.remove();
-    });
-}
-
-// ========== UTILITÁRIOS ==========
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// ========== EXPORT PARA USO GLOBAL ==========
-window.mostrarNotificacao = mostrarNotificacao;
+// Exportar funções para uso global
 window.abrirModal = abrirModal;
 window.fecharModal = fecharModal;
 window.selecionarSugestao = selecionarSugestao;
