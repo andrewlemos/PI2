@@ -1,96 +1,392 @@
 {% load static %}
-
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Minha Loja{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Minha Loja - Os melhores produtos de limpeza com preços imbatíveis e entrega rápida.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}produtos de limpeza, detergente, desinfetante, esponjas, limpeza doméstica{% endblock %}">
+    <meta name="author" content="Minha Loja">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Minha Loja">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:creator" content="@minhaloja">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/apple-touch-icon.png' %}">
+    
+    <title>{% block title %}Minha Loja - Produtos de Limpeza de Qualidade{% endblock %}</title>
 
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- CSS customizado com tema verde -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous">
+    
+    <!-- CSS Customizado -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <!-- Preload crítico -->
+    <link rel="preload" href="{% static 'js/carrinho.js' %}" as="script">
+    <link rel="preload" href="{% static 'js/main.js' %}" as="script">
+    
+    {% block meta %}{% endblock %}
+    {% block extra_css %}{% endblock %}
 
     <style>
-        /* Pequenos ajustes específicos da página */
-        .produto-img {
-            height: 200px;
-            object-fit: cover;
-        }
-        .carrinho-flutuante {
+        /* Estilos críticos inline */
+        .loading-screen {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        /* Estilo para o contador do carrinho */
+        
+        .navbar-brand img {
+            transition: transform 0.3s ease;
+        }
+        
+        .navbar-brand:hover img {
+            transform: scale(1.05);
+        }
+        
         #contador-carrinho {
-            display: none;
+            transition: all 0.3s ease;
+            font-size: 0.75rem;
             min-width: 20px;
             height: 20px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: bold;
+        }
+        
+        /* Acessibilidade */
+        .user-tabbing *:focus {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+        
+        .skip-link:focus {
+            top: 6px !important;
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                color-scheme: light dark;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+    <!-- Tela de loading -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="text-muted">Carregando Minha Loja...</p>
+        </div>
+    </div>
+
+    <!-- Navegação Principal -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm mb-4" aria-label="Navegação principal">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'index' %}">
-                <img src="{% static 'img/logo.png' %}" alt="Logo" class="logo d-inline-block align-text-top" style="height:60px;">
+            <!-- Logo -->
+            <a class="navbar-brand" href="{% url 'index' %}" aria-label="Minha Loja - Página Inicial">
+                <img src="{% static 'img/logo.png' %}" 
+                     alt="Minha Loja" 
+                     class="logo d-inline-block align-text-top" 
+                     style="height: 50px;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                <span class="h4 mb-0 text-primary" style="display: none;">🛍️ Minha Loja</span>
             </a>
 
-            <div class="d-flex align-items-center">
-                {% if user.is_authenticated %}
-                    <span class="navbar-text me-3">Olá, {{ user.username }}</span>
-                    <a href="{% url 'meus_pedidos' %}" class="btn btn-outline-success me-2">Meus Pedidos</a>
-                    <a href="{% url 'account_logout' %}" class="btn btn-outline-secondary me-2">Sair</a>
-                {% else %}
-                    <a href="{% url 'account_login' %}" class="btn btn-outline-primary me-2">Entrar</a>
-                {% endif %}
-                
-                <a href="{% url 'checkout' %}" class="btn btn-primary position-relative">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="contador-carrinho">
-                        0
-                    </span>
-                </a>
+            <!-- Botão mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Alternar navegação">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Menu -->
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'index' %}">
+                            <i class="fas fa-home me-1"></i>Início
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-th-list me-1"></i>Categorias
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'index' %}?search=detergente">Detergentes</a></li>
+                            <li><a class="dropdown-item" href="{% url 'index' %}?search=desinfetante">Desinfetantes</a></li>
+                            <li><a class="dropdown-item" href="{% url 'index' %}?search=esponja">Esponjas e Panos</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'index' %}">Todos os Produtos</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'checkout' %}">
+                            <i class="fas fa-info-circle me-1"></i>Como Comprar
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Área do usuário -->
+                <div class="d-flex align-items-center gap-2">
+                    {% if user.is_authenticated %}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user me-1"></i>
+                                <span class="d-none d-md-inline">{{ user.first_name|default:user.username }}</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <span class="dropdown-item-text small text-muted">
+                                        Logado como<br>
+                                        <strong>{{ user.email }}</strong>
+                                    </span>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'meus_pedidos' %}">
+                                        <i class="fas fa-receipt me-2"></i>Meus Pedidos
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-heart me-2"></i>Favoritos
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{% url 'account_logout' %}">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Sair
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-sign-in-alt me-1"></i>
+                            <span class="d-none d-md-inline">Entrar</span>
+                        </a>
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary d-none d-md-inline-block">
+                            <i class="fas fa-user-plus me-1"></i>Criar Conta
+                        </a>
+                    {% endif %}
+                    
+                    <!-- Carrinho -->
+                    <a href="{% url 'checkout' %}" class="btn btn-primary position-relative" aria-label="Carrinho de compras">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="contador-carrinho">
+                            0
+                        </span>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
-    
-    <div class="container">
+
+    <!-- Conteúdo Principal -->
+    <main id="main-content" class="min-vh-50">
+        {% if messages %}
+        <div class="container mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="fas 
+                    {% if message.tags == 'success' %}fa-check-circle
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}fa-exclamation-circle
+                    {% elif message.tags == 'warning' %}fa-exclamation-triangle
+                    {% else %}fa-info-circle{% endif %}
+                me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         {% block content %}
+        <!-- Conteúdo das páginas filhas -->
         {% endblock %}
-    </div>
+    </main>
 
-    <!-- Container para notificações -->
-    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
-    
-    <!-- JS do Bootstrap -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Nossos scripts - ORDEM É IMPORTANTE -->
-    <script src="{% static 'js/carrinho.js' %}"></script>
-    <script src="{% static 'js/main.js' %}"></script>
-    
-    {% block extra_js %}
-    {% endblock %}
-
-    <script>
-        // Inicialização básica quando o DOM estiver pronto
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Base template carregado');
+    <!-- Rodapé -->
+    <footer class="bg-dark text-light mt-5 py-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <h5 class="mb-3">
+                        <img src="{% static 'img/logo.png' %}" alt="Minha Loja" height="40" class="me-2">
+                        Minha Loja
+                    </h5>
+                    <p class="text-muted">
+                        Os melhores produtos de limpeza para sua casa. Qualidade, preço justo e entrega rápida.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3" aria-label="Facebook">
+                            <i class="fab fa-facebook fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-light me-3" aria-label="Instagram">
+                            <i class="fab fa-instagram fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-light" aria-label="WhatsApp">
+                            <i class="fab fa-whatsapp fa-lg"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-2 col-md-6">
+                    <h6 class="mb-3">Institucional</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Sobre Nós</a></li>
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Nossa História</a></li>
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Trabalhe Conosco</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-lg-2 col-md-6">
+                    <h6 class="mb-3">Ajuda</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">FAQ</a></li>
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Entregas</a></li>
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Trocas</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-lg-2 col-md-6">
+                    <h6 class="mb-3">Legal</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Termos de Uso</a></li>
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Privacidade</a></li>
+                        <li class="mb-2"><a href="#" class="text-muted text-decoration-none">Cookies</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-lg-2 col-md-6">
+                    <h6 class="mb-3">Contato</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-phone me-2 text-primary"></i>
+                            <span class="text-muted">(11) 9999-9999</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-envelope me-2 text-primary"></i>
+                            <span class="text-muted">contato@minhaloja.com</span>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock me-2 text-primary"></i>
+                            <span class="text-muted">Seg-Sex: 9h-18h</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
             
-            // Inicializar contador do carrinho
-            if (typeof atualizarContadorCarrinho === 'function') {
-                atualizarContadorCarrinho();
-            } else {
-                console.warn('Função atualizarContadorCarrinho não encontrada');
+            <hr class="my-4 border-secondary">
+            
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="text-muted mb-0">
+                        &copy; 2024 Minha Loja. Todos os direitos reservados.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="payment-methods">
+                        <span class="text-muted me-2">Formas de pagamento:</span>
+                        <i class="fab fa-cc-visa text-muted me-2" title="Visa"></i>
+                        <i class="fab fa-cc-mastercard text-muted me-2" title="Mastercard"></i>
+                        <i class="fab fa-cc-paypal text-muted me-2" title="PayPal"></i>
+                        <i class="fas fa-barcode text-muted" title="Boleto"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Container para notificações toast -->
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
+    <!-- Scripts -->
+    <!-- Bootstrap Bundle com Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    
+    <!-- Nossos scripts (ordem importante) -->
+    <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/carrinho.js' %}"></script>
+    
+    <!-- Scripts específicos da página -->
+    {% block extra_js %}{% endblock %}
+
+    <!-- Inicialização -->
+    <script>
+        // Remover tela de loading quando a página carregar
+        window.addEventListener('load', function() {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.remove();
+                }, 300);
             }
+        });
+
+        // Fallback: remover tela de loading após 3 segundos
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.remove();
+            }
+        }, 3000);
+
+        // Configurações globais
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏪 Minha Loja - Sistema carregado');
+            
+            // Inicializar contador do carrinho se disponível
+            if (typeof carrinho !== 'undefined' && carrinho.atualizarContadorCarrinho) {
+                carrinho.atualizarContadorCarrinho();
+            } else {
+                // Fallback para contador básico
+                const contador = document.getElementById('contador-carrinho');
+                if (contador) {
+                    try {
+                        const carrinhoData = sessionStorage.getItem('carrinho_ecommerce');
+                        if (carrinhoData) {
+                            const itens = JSON.parse(carrinhoData);
+                            const total = itens.reduce((sum, item) => sum + (item.quantidade || 0), 0);
+                            contador.textContent = total;
+                            contador.style.display = total > 0 ? 'block' : 'none';
+                        }
+                    } catch (e) {
+                        console.warn('Erro ao inicializar contador do carrinho:', e);
+                    }
+                }
+            }
+
+            // Verificar se há mensagens para mostrar
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+
+        // Tratamento de erro global
+        window.addEventListener('error', function(e) {
+            console.error('Erro global capturado:', e.error);
         });
     </script>
 </body>

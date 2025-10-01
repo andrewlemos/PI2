@@ -1,25 +1,55 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}{% if termo_busca %}Busca: "{{ termo_busca }}" - {% endif %}Minha Loja - Produtos de Limpeza{% endblock %}
+
 {% block content %}
-<!-- Barra de Busca -->
-<div class="container mb-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="search-container position-relative">
-                <input type="text" id="barra-busca" class="form-control form-control-lg" 
-                       placeholder="O que você está procurando?" value="{{ termo_busca|default:'' }}">
-                <div id="sugestoes-busca" class="sugestoes-lista"></div>
-                <button class="btn btn-primary position-absolute end-0 top-0 h-100" id="btn-busca">
-                    <i class="fas fa-search"></i>
-                </button>
+<!-- Hero Section -->
+<section class="hero-section bg-primary bg-gradient text-white py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-3">Produtos de Limpeza de Qualidade</h1>
+                <p class="lead mb-4">Encontre tudo para deixar sua casa limpa e cheirosa com os melhores preços do mercado.</p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge bg-light text-primary fs-6">🏠 Limpeza Doméstica</span>
+                    <span class="badge bg-light text-primary fs-6">🛡️ Produtos Seguros</span>
+                    <span class="badge bg-light text-primary fs-6">🚚 Entrega Rápida</span>
+                </div>
             </div>
+            <div class="col-lg-6 text-center">
+                <img src="{% static 'img/hero-cleaning.png' %}" alt="Produtos de Limpeza" class="img-fluid" style="max-height: 300px;">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Barra de Busca Melhorada -->
+<div class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="search-container position-relative">
+                <div class="input-group input-group-lg">
+                    <input type="text" id="barra-busca" class="form-control" 
+                           placeholder="O que você está procurando? Ex: detergente, desinfetante, esponja..."
+                           value="{{ termo_busca|default:'' }}"
+                           aria-label="Buscar produtos">
+                    <button class="btn btn-primary" type="button" id="btn-busca">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                </div>
+                <div id="sugestoes-busca" class="sugestoes-lista"></div>
+            </div>
+            
             {% if termo_busca %}
-            <div class="mt-2 text-center">
-                <small class="text-muted">
-                    Buscando por: "{{ termo_busca }}"
-                    <a href="/" class="text-danger ms-2">(Limpar busca)</a>
-                </small>
+            <div class="mt-3 text-center">
+                <div class="alert alert-info d-inline-flex align-items-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span>Buscando por: <strong>"{{ termo_busca }}"</strong></span>
+                    <a href="{% url 'index' %}" class="btn btn-sm btn-outline-danger ms-3">
+                        <i class="fas fa-times me-1"></i>Limpar busca
+                    </a>
+                </div>
             </div>
             {% endif %}
         </div>
@@ -28,42 +58,64 @@
 
 <!-- Categorias -->
 <section class="mb-5">
-    <h2 class="text-center mb-4">Categorias em Destaque</h2>
-    <div class="row g-3">
-        <div class="col-md-3 col-6">
-            <div class="card category-card text-center border-0 shadow-sm">
-                <div class="card-body py-4">
-                    <i class="fas fa-broom fa-2x text-primary mb-3"></i>
-                    <h5 class="card-title">Detergentes</h5>
-                    <p class="text-muted small">Limpeza doméstica diária</p>
-                </div>
+    <div class="container">
+        <h2 class="text-center mb-4">Categorias em Destaque</h2>
+        <div class="row g-4">
+            <div class="col-md-3 col-6">
+                <a href="{% url 'index' %}?search=detergente" class="text-decoration-none">
+                    <div class="card category-card text-center border-0 shadow-sm h-100">
+                        <div class="card-body py-4">
+                            <div class="category-icon mb-3">
+                                <i class="fas fa-broom fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="card-title text-dark">Detergentes</h5>
+                            <p class="text-muted small">Limpeza doméstica diária</p>
+                            <span class="badge bg-primary">Ver Produtos</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card category-card text-center border-0 shadow-sm">
-                <div class="card-body py-4">
-                    <i class="fas fa-spray-can fa-2x text-primary mb-3"></i>
-                    <h5 class="card-title">Desinfetantes</h5>
-                    <p class="text-muted small">Proteção contra germes</p>
-                </div>
+            <div class="col-md-3 col-6">
+                <a href="{% url 'index' %}?search=desinfetante" class="text-decoration-none">
+                    <div class="card category-card text-center border-0 shadow-sm h-100">
+                        <div class="card-body py-4">
+                            <div class="category-icon mb-3">
+                                <i class="fas fa-spray-can fa-3x text-success"></i>
+                            </div>
+                            <h5 class="card-title text-dark">Desinfetantes</h5>
+                            <p class="text-muted small">Proteção contra germes</p>
+                            <span class="badge bg-success">Ver Produtos</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card category-card text-center border-0 shadow-sm">
-                <div class="card-body py-4">
-                    <i class="fas fa-soap fa-2x text-primary mb-3"></i>
-                    <h5 class="card-title">Esponjas e Panos</h5>
-                    <p class="text-muted small">Para todas as superfícies</p>
-                </div>
+            <div class="col-md-3 col-6">
+                <a href="{% url 'index' %}?search=esponja" class="text-decoration-none">
+                    <div class="card category-card text-center border-0 shadow-sm h-100">
+                        <div class="card-body py-4">
+                            <div class="category-icon mb-3">
+                                <i class="fas fa-soap fa-3x text-info"></i>
+                            </div>
+                            <h5 class="card-title text-dark">Esponjas e Panos</h5>
+                            <p class="text-muted small">Para todas as superfícies</p>
+                            <span class="badge bg-info">Ver Produtos</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card category-card text-center border-0 shadow-sm">
-                <div class="card-body py-4">
-                    <i class="fas fa-industry fa-2x text-primary mb-3"></i>
-                    <h5 class="card-title">Limpeza Pesada</h5>
-                    <p class="text-muted small">Produtos profissionais</p>
-                </div>
+            <div class="col-md-3 col-6">
+                <a href="{% url 'index' %}?search=limpeza+pesada" class="text-decoration-none">
+                    <div class="card category-card text-center border-0 shadow-sm h-100">
+                        <div class="card-body py-4">
+                            <div class="category-icon mb-3">
+                                <i class="fas fa-industry fa-3x text-warning"></i>
+                            </div>
+                            <h5 class="card-title text-dark">Limpeza Pesada</h5>
+                            <p class="text-muted small">Produtos profissionais</p>
+                            <span class="badge bg-warning">Ver Produtos</span>
+                        </div>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
@@ -71,252 +123,622 @@
 
 <!-- Produtos -->
 <section id="products" class="mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>{% if termo_busca %}Resultados da Busca{% else %}Nossos Produtos{% endif %}</h2>
-        <div>
-            <select class="form-select form-select-sm w-auto d-inline-block" id="filtro-ordenacao">
-                <option value="mais-vendidos">Ordenar por: Mais Vendidos</option>
-                <option value="preco-menor">Preço: Menor para Maior</option>
-                <option value="preco-maior">Preço: Maior para Menor</option>
-                <option value="nome-az">Nome A-Z</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="row" id="container-produtos">
-        {% for produto in produtos %}
-        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-            <div class="card product-card h-100">
-                <div class="product-img-container position-relative">
-                    {% if produto.imagem %}
-                    <img src="{{ produto.imagem.url }}" class="card-img-top product-img" alt="{{ produto.nome }}"
-                        style="height: 200px; object-fit: cover;">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-0">
+                    {% if termo_busca %}
+                    <i class="fas fa-search me-2"></i>Resultados da Busca
                     {% else %}
-                    <div class="card-img-top product-img bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                        <span class="text-muted">Sem imagem</span>
-                    </div>
+                    <i class="fas fa-star me-2"></i>Nossos Produtos
                     {% endif %}
+                </h2>
+                {% if not termo_busca %}
+                <p class="text-muted mb-0">Encontre os melhores produtos para sua limpeza</p>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-muted d-none d-md-block">Ordenar por:</span>
+                <select class="form-select form-select-sm w-auto" id="filtro-ordenacao">
+                    <option value="relevancia">Mais Relevantes</option>
+                    <option value="preco-menor">Preço: Menor para Maior</option>
+                    <option value="preco-maior">Preço: Maior para Menor</option>
+                    <option value="nome-az">Nome A-Z</option>
+                    <option value="novidades">Mais Novos</option>
+                </select>
+            </div>
+        </div>
 
-                    <div class="product-actions">
-                        <button type="button" class="btn btn-sm btn-light rounded-circle btn-favorito">
-                            <i class="far fa-heart"></i>
-                        </button>
-                    </div>
-
-                    {% if produto.desconto %}
-                    <span class="position-absolute top-0 start-0 m-2 badge bg-danger">{{ produto.desconto }}% OFF</span>
+        <!-- Contador de produtos -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">
+                        <strong>{{ produtos.count }}</strong> produto{{ produtos.count|pluralize }} encontrado{{ produtos.count|pluralize }}
+                    </span>
+                    {% if termo_busca %}
+                    <a href="{% url 'index' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-list me-1"></i>Ver todos os produtos
+                    </a>
                     {% endif %}
                 </div>
+            </div>
+        </div>
 
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h5 class="card-title">{{ produto.nome }}</h5>
-                        <button type="button" class="btn btn-sm btn-link p-0 btn-compartilhar" data-produto-id="{{ produto.id }}">
-                            <i class="fas fa-share-alt"></i>
-                        </button>
-                    </div>
-
-                    <div class="mb-3">
-                        {% if produto.preco_original %}
-                        <span class="text-muted text-decoration-line-through me-2">R$ {{ produto.preco_original }}</span>
+        <!-- Grid de Produtos -->
+        <div class="row" id="container-produtos">
+            {% for produto in produtos %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card product-card h-100">
+                    <div class="product-img-container position-relative">
+                        {% if produto.imagem %}
+                        <img src="{{ produto.imagem.url }}" 
+                             class="card-img-top product-img" 
+                             alt="{{ produto.nome }}"
+                             loading="lazy"
+                             onerror="this.src='{% static 'img/sem-imagem.jpg' %}'">
+                        {% else %}
+                        <div class="card-img-top product-img bg-light d-flex align-items-center justify-content-center">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-image fa-3x mb-2"></i>
+                                <p class="small mb-0">Sem imagem</p>
+                            </div>
+                        </div>
                         {% endif %}
-                        <span class="h5 text-primary">R$ {{ produto.preco }}</span>
+
+                        <div class="product-actions position-absolute top-0 end-0 p-2">
+                            <button type="button" class="btn btn-sm btn-light rounded-circle btn-favorito shadow-sm"
+                                    data-produto-id="{{ produto.id }}"
+                                    title="Adicionar aos favoritos">
+                                <i class="far fa-heart"></i>
+                            </button>
+                        </div>
+
+                        {% if produto.tem_desconto %}
+                        <span class="position-absolute top-0 start-0 m-2 badge bg-danger fs-6">
+                            {{ produto.percentual_desconto }}% OFF
+                        </span>
+                        {% endif %}
+
+                        {% if produto.estoque <= 0 %}
+                        <div class="position-absolute top-50 start-50 translate-middle">
+                            <span class="badge bg-dark bg-opacity-75 fs-6">ESGOTADO</span>
+                        </div>
+                        {% endif %}
                     </div>
 
-                    <div class="d-grid gap-2 mt-auto">
-                        <button type="button" class="btn btn-primary btn-adicionar-carrinho"
-                                data-produto-id="{{ produto.id }}"
-                                data-produto-nome="{{ produto.nome|escapejs }}"
-                                data-produto-preco="{{ produto.preco }}"
-                                data-produto-imagem="{% if produto.imagem %}{{ produto.imagem.url }}{% else %}{% static 'img/sem-imagem.jpg' %}{% endif %}"
-                                data-quantidade="1">
-                            Adicionar ao Carrinho
-                        </button>
-                        <a href="{% url 'produto_detalhe' produto.id %}" class="btn btn-outline-secondary">Ver Detalhes</a>
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title product-title">{{ produto.nome }}</h5>
+                            <button type="button" class="btn btn-sm btn-link p-0 btn-compartilhar" 
+                                    data-produto-id="{{ produto.id }}"
+                                    title="Compartilhar produto">
+                                <i class="fas fa-share-alt text-muted"></i>
+                            </button>
+                        </div>
+
+                        <!-- Avaliação -->
+                        <div class="product-rating mb-2">
+                            <div class="text-warning small">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <small class="text-muted">(128 avaliações)</small>
+                        </div>
+
+                        <!-- Preço -->
+                        <div class="product-pricing mb-3">
+                            {% if produto.tem_desconto %}
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted text-decoration-line-through small">
+                                    R$ {{ produto.preco_original }}
+                                </span>
+                                <span class="h5 text-primary mb-0">R$ {{ produto.preco }}</span>
+                            </div>
+                            {% else %}
+                            <span class="h5 text-primary mb-0">R$ {{ produto.preco }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Estoque -->
+                        <div class="product-stock mb-3">
+                            {% if produto.estoque > 0 %}
+                            <small class="text-success">
+                                <i class="fas fa-check-circle me-1"></i>
+                                Em estoque ({{ produto.estoque }} unidade{{ produto.estoque|pluralize }})
+                            </small>
+                            {% else %}
+                            <small class="text-danger">
+                                <i class="fas fa-times-circle me-1"></i>
+                                Produto esgotado
+                            </small>
+                            {% endif %}
+                        </div>
+
+                        <!-- Ações -->
+                        <div class="d-grid gap-2 mt-auto">
+                            {% if produto.estoque > 0 %}
+                            <button type="button" class="btn btn-primary btn-adicionar-carrinho"
+                                    data-produto-id="{{ produto.id }}"
+                                    data-produto-nome="{{ produto.nome|escapejs }}"
+                                    data-produto-preco="{{ produto.preco }}"
+                                    data-produto-imagem="{% if produto.imagem %}{{ produto.imagem.url }}{% else %}{% static 'img/sem-imagem.jpg' %}{% endif %}"
+                                    data-quantidade="1"
+                                    {% if produto.estoque <= 0 %}disabled{% endif %}>
+                                <i class="fas fa-shopping-cart me-2"></i>
+                                Adicionar ao Carrinho
+                            </button>
+                            {% endif %}
+                            <a href="{% url 'produto_detalhe' produto.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-eye me-2"></i>Ver Detalhes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <div class="empty-state">
+                    <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nenhum produto encontrado</h4>
+                    <p class="text-muted mb-4">
+                        {% if termo_busca %}
+                        Não encontramos produtos para "{{ termo_busca }}". Tente outros termos.
+                        {% else %}
+                        Não há produtos disponíveis no momento.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'index' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-home me-2"></i>Voltar à Página Inicial
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginação -->
+        {% if produtos.has_other_pages %}
+        <nav class="mt-5" aria-label="Navegação de páginas">
+            <ul class="pagination justify-content-center">
+                {% if produtos.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ produtos.previous_page_number }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">
+                        <i class="fas fa-chevron-left me-1"></i>Anterior
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                        <i class="fas fa-chevron-left me-1"></i>Anterior
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for i in produtos.paginator.page_range %}
+                    {% if produtos.number == i %}
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                    {% elif i > produtos.number|add:'-3' and i < produtos.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if produtos.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ produtos.next_page_number }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">
+                        Próximo<i class="fas fa-chevron-right ms-1"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                        Próximo<i class="fas fa-chevron-right ms-1"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Banner de Promoção -->
+<section class="bg-light py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h3 class="fw-bold mb-3">🎉 Frete Grátis em Compras Acima de R$ 100!</h3>
+                <p class="text-muted mb-4">Aproveite nossa promoção de frete grátis para todo o Brasil. Compre seus produtos de limpeza com economia e praticidade.</p>
+                <a href="{% url 'checkout' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-shopping-cart me-2"></i>Finalizar Compra Agora
+                </a>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="promo-badge">
+                    <div class="bg-primary text-white rounded-circle p-4 d-inline-block">
+                        <i class="fas fa-shipping-fast fa-3x"></i>
                     </div>
                 </div>
             </div>
         </div>
-        {% empty %}
-        <div class="col-12 text-center py-5">
-            <i class="fas fa-search fa-3x text-muted mb-3"></i>
-            <h4>Nenhum produto encontrado</h4>
-            <p class="text-muted">Tente usar outros termos de busca</p>
-            <a href="/" class="btn btn-primary">Ver todos os produtos</a>
-        </div>
-        {% endfor %}
     </div>
-
-
-
-    <!-- Paginação -->
-    {% if produtos.has_other_pages %}
-    <nav class="mt-5">
-        <ul class="pagination justify-content-center">
-            {% if produtos.has_previous %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ produtos.previous_page_number }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">Anterior</a>
-            </li>
-            {% else %}
-            <li class="page-item disabled">
-                <a class="page-link" href="#">Anterior</a>
-            </li>
-            {% endif %}
-
-            {% for i in produtos.paginator.page_range %}
-            <li class="page-item {% if produtos.number == i %}active{% endif %}">
-                <a class="page-link" href="?page={{ i }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">{{ i }}</a>
-            </li>
-            {% endfor %}
-
-            {% if produtos.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ produtos.next_page_number }}{% if termo_busca %}&search={{ termo_busca }}{% endif %}">Próximo</a>
-            </li>
-            {% else %}
-            <li class="page-item disabled">
-                <a class="page-link" href="#">Próximo</a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
 </section>
 
 <!-- Modal de Newsletter -->
-<div id="modal-newsletter" class="modal fade" tabindex="-1" aria-hidden="true">
+<div id="modal-newsletter" class="modal fade" tabindex="-1" aria-labelledby="modalNewsletterLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Fique por dentro das novidades!</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalNewsletterLabel">
+                    <i class="fas fa-envelope me-2"></i>Fique por dentro das novidades!
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p>Cadastre-se em nossa newsletter e receba ofertas exclusivas!</p>
+            <div class="modal-body text-center py-4">
+                <div class="mb-4">
+                    <i class="fas fa-gift fa-4x text-primary mb-3"></i>
+                    <h4>Ofertas Exclusivas!</h4>
+                </div>
+                <p class="text-muted mb-4">
+                    Cadastre-se em nossa newsletter e receba descontos especiais, novidades e dicas de limpeza diretamente no seu e-mail.
+                </p>
                 <form class="newsletter-form" id="form-newsletter">
                     <div class="mb-3">
-                        <input type="email" class="form-control" id="email-newsletter" placeholder="Seu melhor e-mail" required>
+                        <input type="email" class="form-control form-control-lg" id="email-newsletter" 
+                               placeholder="Seu melhor e-mail" required>
+                        <div class="invalid-feedback">Por favor, informe um e-mail válido.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-paper-plane me-2"></i>Quero Receber Ofertas
+                    </button>
                 </form>
+                <p class="small text-muted mt-3">
+                    🔒 Não compartilhamos seus dados. Você pode cancelar a qualquer momento.
+                </p>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Área de notificações toast -->
-<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// CONFIGURAÇÃO PRINCIPAL
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Página carregada - configurando funcionalidades');
-    
-    // 1. CONFIGURAR BUSCA
-    const barraBusca = document.getElementById('barra-busca');
-    const btnBusca = document.getElementById('btn-busca');
-    
-    if (barraBusca && btnBusca) {
-        btnBusca.onclick = function() {
-            const termo = barraBusca.value.trim();
-            if (termo) {
-                window.location.href = '/?search=' + encodeURIComponent(termo);
-            } else {
-                alert('Digite algo para buscar');
-            }
-        };
-        
-        barraBusca.addEventListener('keypress', function(e) {
+class IndexPageManager {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        console.log('🏠 IndexPageManager inicializado');
+        this.setupBusca();
+        this.setupNewsletter();
+        this.setupInteracoes();
+        this.setupOrdenacao();
+    }
+
+    setupBusca() {
+        const barraBusca = document.getElementById('barra-busca');
+        const btnBusca = document.getElementById('btn-busca');
+        const sugestoesContainer = document.getElementById('sugestoes-busca');
+
+        if (!barraBusca || !btnBusca) return;
+
+        let timeoutBusca;
+
+        // Busca ao clicar no botão
+        btnBusca.addEventListener('click', () => {
+            this.realizarBusca(barraBusca.value.trim());
+        });
+
+        // Busca ao pressionar Enter
+        barraBusca.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                btnBusca.click();
+                this.realizarBusca(barraBusca.value.trim());
+            }
+        });
+
+        // Busca em tempo real para sugestões
+        barraBusca.addEventListener('input', (e) => {
+            clearTimeout(timeoutBusca);
+            const termo = e.target.value.trim();
+
+            if (termo.length > 2) {
+                timeoutBusca = setTimeout(() => {
+                    this.buscarSugestoes(termo);
+                }, 300);
+            } else {
+                this.ocultarSugestoes();
+            }
+        });
+
+        // Fechar sugestões ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                this.ocultarSugestoes();
             }
         });
     }
-    
-    // 2. NEWSLETTER INTELIGENTE (SÓ UMA VEZ POR SESSÃO)
-    const formNewsletter = document.getElementById('form-newsletter');
-    if (formNewsletter) {
-        formNewsletter.onsubmit = function(e) {
-            e.preventDefault();
-            const email = document.getElementById('email-newsletter').value;
-            if (email.includes('@')) {
-                alert('E-mail cadastrado com sucesso! Obrigado!');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modal-newsletter'));
-                modal.hide();
-                localStorage.setItem('newsletterFechado', 'true');
+
+    realizarBusca(termo) {
+        if (termo) {
+            window.location.href = `/?search=${encodeURIComponent(termo)}`;
+        } else {
+            if (typeof carrinho !== 'undefined') {
+                carrinho.mostrarNotificacao('Digite algo para buscar', 'info');
             } else {
-                alert('Por favor, insira um e-mail válido');
+                alert('Digite algo para buscar');
             }
-        };
+        }
     }
-    
-    // 3. NEWSLETTER SÓ ABRE UMA VEZ (por sessão)
-    const newsletterJaVisto = sessionStorage.getItem('newsletterVisto');
-    const newsletterBloqueado = localStorage.getItem('newsletterFechado') === 'true';
-    
-    if (!newsletterBloqueado && !newsletterJaVisto) {
-        setTimeout(() => {
-            const newsletterModal = new bootstrap.Modal(document.getElementById('modal-newsletter'));
-            newsletterModal.show();
-            sessionStorage.setItem('newsletterVisto', 'true');
-        }, 10000);
-    }
-    
-    // 4. Configurações básicas de interação
-    document.querySelectorAll('.btn-favorito').forEach(btn => {
-        btn.onclick = function() {
-            const icon = this.querySelector('i');
-            icon.classList.toggle('far');
-            icon.classList.toggle('fas');
-            this.classList.toggle('btn-light');
-            this.classList.toggle('btn-danger');
-            alert('Produto adicionado aos favoritos!');
-        };
-    });
-    
-    // 5. Compartilhamento de produtos
-    document.querySelectorAll('.btn-compartilhar').forEach(btn => {
-        btn.onclick = function() {
-            const produtoId = this.dataset.produtoId;
-            const link = window.location.origin + '/produto/' + produtoId + '/';
-            
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(link)
-                    .then(() => alert('Link copiado para a área de transferência!'))
-                    .catch(() => alert('Erro ao copiar link.'));
+
+    async buscarSugestoes(termo) {
+        try {
+            const response = await fetch(`/api/buscar-sugestoes/?q=${encodeURIComponent(termo)}`);
+            const data = await response.json();
+
+            if (data.sugestoes && data.sugestoes.length > 0) {
+                this.mostrarSugestoes(data.sugestoes);
             } else {
-                // Fallback para método antigo
+                this.ocultarSugestoes();
+            }
+        } catch (error) {
+            console.error('Erro ao buscar sugestões:', error);
+            this.ocultarSugestoes();
+        }
+    }
+
+    mostrarSugestoes(sugestoes) {
+        const container = document.getElementById('sugestoes-busca');
+        if (!container) return;
+
+        const html = sugestoes.map(produto => `
+            <div class="sugestao-item" onclick="indexPage.selecionarSugestao('${produto.nome.replace(/'/g, "\\'")}')">
+                <div class="d-flex align-items-center">
+                    <img src="${produto.imagem || '/static/img/sem-imagem.jpg'}" 
+                         alt="${produto.nome}" 
+                         class="rounded me-3" 
+                         width="40" 
+                         height="40"
+                         style="object-fit: cover;"
+                         onerror="this.src='/static/img/sem-imagem.jpg'">
+                    <div class="flex-grow-1">
+                        <div class="fw-medium">${produto.nome}</div>
+                        <small class="text-muted">R$ ${produto.preco}</small>
+                    </div>
+                    <small class="text-success">
+                        ${produto.estoque > 0 ? 'Em estoque' : 'Esgotado'}
+                    </small>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+        container.style.display = 'block';
+    }
+
+    ocultarSugestoes() {
+        const container = document.getElementById('sugestoes-busca');
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
+    selecionarSugestao(termo) {
+        document.getElementById('barra-busca').value = termo;
+        this.ocultarSugestoes();
+        this.realizarBusca(termo);
+    }
+
+    setupNewsletter() {
+        const formNewsletter = document.getElementById('form-newsletter');
+        if (!formNewsletter) return;
+
+        formNewsletter.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.processarNewsletter();
+        });
+
+        // Mostrar modal após delay (apenas uma vez por sessão)
+        const newsletterJaVisto = sessionStorage.getItem('newsletterVisto');
+        const newsletterBloqueado = localStorage.getItem('newsletterFechado') === 'true';
+
+        if (!newsletterBloqueado && !newsletterJaVisto) {
+            setTimeout(() => {
+                this.mostrarModalNewsletter();
+            }, 15000); // 15 segundos
+        }
+    }
+
+    async processarNewsletter() {
+        const emailInput = document.getElementById('email-newsletter');
+        const email = emailInput.value.trim();
+
+        if (!this.validarEmail(email)) {
+            this.mostrarErroNewsletter('Por favor, insira um e-mail válido.');
+            return;
+        }
+
+        try {
+            // Simular envio para API (substitua pela sua API real)
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            if (typeof carrinho !== 'undefined') {
+                carrinho.mostrarNotificacao('🎉 E-mail cadastrado com sucesso! Obrigado!', 'success');
+            } else {
+                alert('E-mail cadastrado com sucesso! Obrigado!');
+            }
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modal-newsletter'));
+            if (modal) modal.hide();
+
+            localStorage.setItem('newsletterFechado', 'true');
+            sessionStorage.setItem('newsletterVisto', 'true');
+
+            emailInput.value = '';
+
+        } catch (error) {
+            this.mostrarErroNewsletter('Erro ao cadastrar e-mail. Tente novamente.');
+        }
+    }
+
+    validarEmail(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    }
+
+    mostrarErroNewsletter(mensagem) {
+        const emailInput = document.getElementById('email-newsletter');
+        emailInput.classList.add('is-invalid');
+        
+        if (typeof carrinho !== 'undefined') {
+            carrinho.mostrarNotificacao(mensagem, 'error');
+        } else {
+            alert(mensagem);
+        }
+    }
+
+    mostrarModalNewsletter() {
+        const modalElement = document.getElementById('modal-newsletter');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            sessionStorage.setItem('newsletterVisto', 'true');
+        }
+    }
+
+    setupInteracoes() {
+        // Favoritos
+        document.addEventListener('click', (e) => {
+            const btnFavorito = e.target.closest('.btn-favorito');
+            if (btnFavorito) {
+                this.toggleFavorito(btnFavorito);
+            }
+
+            const btnCompartilhar = e.target.closest('.btn-compartilhar');
+            if (btnCompartilhar) {
+                this.compartilharProduto(btnCompartilhar);
+            }
+        });
+    }
+
+    toggleFavorito(btn) {
+        const produtoId = btn.dataset.produtoId;
+        const icon = btn.querySelector('i');
+        
+        icon.classList.toggle('far');
+        icon.classList.toggle('fas');
+        btn.classList.toggle('btn-light');
+        btn.classList.toggle('btn-danger');
+
+        const isFavorito = icon.classList.contains('fas');
+        const mensagem = isFavorito ? '❤️ Produto adicionado aos favoritos!' : '💔 Produto removido dos favoritos';
+
+        if (typeof carrinho !== 'undefined') {
+            carrinho.mostrarNotificacao(mensagem, 'success');
+        } else {
+            alert(mensagem);
+        }
+
+        // Salvar no localStorage (simulação)
+        this.salvarFavorito(produtoId, isFavorito);
+    }
+
+    salvarFavorito(produtoId, isFavorito) {
+        let favoritos = JSON.parse(localStorage.getItem('favoritos') || '[]');
+        
+        if (isFavorito) {
+            if (!favoritos.includes(produtoId)) {
+                favoritos.push(produtoId);
+            }
+        } else {
+            favoritos = favoritos.filter(id => id !== produtoId);
+        }
+        
+        localStorage.setItem('favoritos', JSON.stringify(favoritos));
+    }
+
+    async compartilharProduto(btn) {
+        const produtoId = btn.dataset.produtoId;
+        const link = `${window.location.origin}/produto/${produtoId}/`;
+
+        try {
+            if (navigator.share) {
+                // Web Share API
+                await navigator.share({
+                    title: 'Confira este produto!',
+                    text: 'Encontrei este produto incrível na Minha Loja',
+                    url: link,
+                });
+            } else if (navigator.clipboard) {
+                // Clipboard API
+                await navigator.clipboard.writeText(link);
+                if (typeof carrinho !== 'undefined') {
+                    carrinho.mostrarNotificacao('📋 Link copiado para a área de transferência!', 'success');
+                } else {
+                    alert('Link copiado para a área de transferência!');
+                }
+            } else {
+                // Fallback
                 const textArea = document.createElement('textarea');
                 textArea.value = link;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                alert('Link copiado!');
+                if (typeof carrinho !== 'undefined') {
+                    carrinho.mostrarNotificacao('📋 Link copiado!', 'success');
+                } else {
+                    alert('Link copiado!');
+                }
             }
-        };
-    });
-    
-    // 6. Ordenação de produtos
-    const filtroOrdenacao = document.getElementById('filtro-ordenacao');
-    if (filtroOrdenacao) {
-        filtroOrdenacao.addEventListener('change', function() {
-            // Esta função será implementada conforme sua lógica de ordenação
-            console.log('Ordenar por:', this.value);
+        } catch (error) {
+            console.error('Erro ao compartilhar:', error);
+        }
+    }
+
+    setupOrdenacao() {
+        const filtroOrdenacao = document.getElementById('filtro-ordenacao');
+        if (!filtroOrdenacao) return;
+
+        filtroOrdenacao.addEventListener('change', (e) => {
+            this.aplicarOrdenacao(e.target.value);
         });
     }
-});
 
-// Função de fallback para notificações
-function mostrarNotificacao(mensagem, tipo = 'info') {
-    alert(mensagem);
+    aplicarOrdenacao(tipo) {
+        // Implementar lógica de ordenação no frontend ou redirecionar para backend
+        console.log('Aplicando ordenação:', tipo);
+        
+        // Exemplo: Redirecionar para URL com parâmetro de ordenação
+        // const url = new URL(window.location);
+        // url.searchParams.set('ordenar', tipo);
+        // window.location.href = url.toString();
+        
+        if (typeof carrinho !== 'undefined') {
+            carrinho.mostrarNotificacao(`Ordenação aplicada: ${tipo}`, 'info');
+        }
+    }
 }
+
+// Inicializar quando o DOM estiver carregado
+document.addEventListener('DOMContentLoaded', function() {
+    window.indexPage = new IndexPageManager();
+});
 </script>
 
 <style>
+.hero-section {
+    background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+    border-radius: 15px;
+}
+
 .search-container {
     position: relative;
 }
@@ -328,19 +750,19 @@ function mostrarNotificacao(mensagem, tipo = 'info') {
     left: 0;
     right: 0;
     background: white;
-    border: 1px solid #ddd;
+    border: 1px solid #dee2e6;
     border-top: none;
-    max-height: 200px;
+    border-radius: 0 0 8px 8px;
+    max-height: 300px;
     overflow-y: auto;
     z-index: 1000;
-    border-radius: 0 0 5px 5px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .sugestao-item {
-    padding: 10px 15px;
+    padding: 12px 15px;
     cursor: pointer;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #f8f9fa;
     transition: background-color 0.2s;
 }
 
@@ -352,36 +774,115 @@ function mostrarNotificacao(mensagem, tipo = 'info') {
     border-bottom: none;
 }
 
+.category-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    border-color: #0d6efd;
+}
+
+.category-icon {
+    transition: transform 0.3s ease;
+}
+
+.category-card:hover .category-icon {
+    transform: scale(1.1);
+}
+
 .product-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
 }
 
 .product-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: #0d6efd;
 }
 
-.category-card {
+.product-img {
+    height: 200px;
+    object-fit: cover;
     transition: transform 0.3s ease;
 }
 
-.category-card:hover {
-    transform: translateY(-3px);
+.product-card:hover .product-img {
+    transform: scale(1.05);
 }
 
-.toast-container {
-    z-index: 1090;
+.product-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 48px;
+}
+
+.product-actions .btn {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.empty-state {
+    padding: 3rem 1rem;
+}
+
+.promo-badge {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
 }
 
 @media (max-width: 768px) {
+    .hero-section {
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+    
+    .hero-section .display-4 {
+        font-size: 2rem;
+    }
+    
     .search-container {
         margin-bottom: 1rem;
     }
     
     .sugestoes-lista {
-        max-height: 150px;
+        max-height: 200px;
     }
+    
+    .category-card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Loading states */
+.product-card.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Badge animations */
+.badge {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
 </style>
 {% endblock %}
-

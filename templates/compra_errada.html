@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Erro no Pagamento - Minha Loja{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card border-0 shadow">
+                <div class="card-body py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                    </div>
+                    
+                    <h1 class="display-6 text-warning mb-3">Pagamento Não Processado</h1>
+                    <p class="lead mb-4">Houve um problema com o seu pagamento.</p>
+                    
+                    <div class="alert alert-warning mb-4">
+                        <p class="mb-0">
+                            Seu pagamento não foi concluído. Você pode tentar novamente ou escolher outra forma de pagamento.
+                        </p>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{% url 'checkout' %}" class="btn btn-primary me-md-2">
+                            <i class="fas fa-credit-card me-2"></i>Tentar Novamente
+                        </a>
+                        <a href="{% url 'index' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>Continuar Comprando
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
