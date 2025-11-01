@@ -4,6 +4,9 @@
 {% block title %}Checkout - Minha Loja{% endblock %}
 
 {% block content %}
+<!-- Container de notificações -->
+<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1090;"></div>
+
 <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
     <div class="container">
         <a class="navbar-brand" href="{% url 'index' %}">
@@ -48,6 +51,7 @@
                 </div>
                 <div class="card-body">
                     <form id="form-entrega" novalidate>
+                        {% csrf_token %}
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="nome" class="form-label">Nome completo *</label>
@@ -87,7 +91,7 @@
                             <div class="col-md-4 mb-3">
                                 <label for="numero" class="form-label">Número *</label>
                                 <input type="text" class="form-control" id="numero" name="numero" required
-                                       placeholder="123" value="S/N">
+                                       placeholder="123">
                                 <div class="invalid-feedback">Por favor, informe o número.</div>
                             </div>
                         </div>
@@ -176,7 +180,7 @@
                         <span>Frete</span>
                         <span id="frete">R$ 0,00</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2 text-success">
+                    <div class="d-flex justify-content-between mb-2 text-success" id="desconto-container" style="display: none !important;">
                         <span>
                             <i class="fas fa-tag me-1"></i>Desconto
                         </span>
@@ -202,7 +206,7 @@
                     <div class="mt-3">
                         <div class="d-flex align-items-center text-muted mb-2">
                             <i class="fas fa-truck text-success me-2"></i>
-                            <small>Frete grátis para compras acima de R$ 100</small>
+                            <small>Frete grátis para compras acima de R$ {{ FRETE_GRATIS_ACIMA_DE|default:100 }}</small>
                         </div>
                         <div class="d-flex align-items-center text-muted mb-2">
                             <i class="fas fa-shield-alt text-success me-2"></i>
@@ -226,6 +230,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/carrinho.js' %}"></script>
 <script>
 // Configurações do carrinho (podem ser sobrescritas pelo Django)
 const FRETE_GRATIS_ACIMA_DE = {{ FRETE_GRATIS_ACIMA_DE|default:100 }};
@@ -272,6 +277,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Esconder container de desconto
+    const descontoContainer = document.getElementById('desconto-container');
+    if (descontoContainer) {
+        descontoContainer.style.display = 'none';
+    }
 });
 
 async function buscarEnderecoPorCEP(cep) {
@@ -284,6 +295,8 @@ async function buscarEnderecoPorCEP(cep) {
             document.getElementById('bairro').value = data.bairro || '';
             document.getElementById('cidade').value = data.localidade || '';
             document.getElementById('estado').value = data.uf || '';
+        } else {
+            console.log('CEP não encontrado');
         }
     } catch (error) {
         console.log('Erro ao buscar CEP:', error);
@@ -329,8 +342,23 @@ async function buscarEnderecoPorCEP(cep) {
     box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
 }
 
+.btn-success:disabled {
+    background: #6c757d;
+    transform: none;
+    box-shadow: none;
+}
+
 .card-header {
     border-bottom: none;
+}
+
+.input-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+.input-group input {
+    border-left: 0;
+    border-right: 0;
 }
 
 @media (max-width: 768px) {

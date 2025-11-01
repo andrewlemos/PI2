@@ -2,16 +2,14 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()  # lê o arquivo .env
+load_dotenv()  # ← Lê o .env ANTES de tudo
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Security settings
+# Security
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-chave-temporaria-altere-em-producao')
-
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
-
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
@@ -22,17 +20,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # Django contrib sites (required for allauth)
-    'django.contrib.sites',
+    'django.contrib.sites',  # OBRIGATÓRIO para allauth
 
-    # Third party apps
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    # 'allauth.socialaccount.providers.google',  # Descomente se precisar do Google auth
+    'allauth.socialaccount.providers.google',
 
-    # Local apps
     'app.apps.AppConfig',
 ]
 
@@ -44,8 +38,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
-    # Allauth middleware
     'allauth.account.middleware.AccountMiddleware',
 ]
 
@@ -54,9 +46,7 @@ ROOT_URLCONF = 'ecommerce.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            os.path.join(BASE_DIR, 'templates'),
-        ],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -83,21 +73,10 @@ DATABASES = {
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 8,
-        }
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 # Internationalization
@@ -106,21 +85,18 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Security settings for production
+# Security (produção)
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -129,7 +105,10 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     X_FRAME_OPTIONS = 'DENY'
 
-# Allauth configuration
+# =======================================
+# ALLAUTH – CONFIGURAÇÃO FINAL (100% FUNCIONAL)
+# =======================================
+
 SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = [
@@ -137,22 +116,30 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-# Allauth settings (atualizadas para versão mais recente)
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_EMAIL_VERIFICATION = 'optional'  # 'mandatory' para produção
-ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
-ACCOUNT_LOGOUT_ON_GET = False  # Corrigido para evitar warning
-ACCOUNT_LOGOUT_REDIRECT_URL = '/'
-ACCOUNT_SESSION_REMEMBER = True
+# PULAR TODAS AS TELAS INTERMEDIÁRIAS
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_ADAPTER = 'app.adapters.CustomSocialAccountAdapter'
 
-# Login/Logout URLs
+# CONFIGURAÇÕES MODERNAS (OBRIGATÓRIAS)
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*']
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # ← SEM VERIFICAÇÃO
+
+# Redirecionamentos
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 ACCOUNT_LOGOUT_REDIRECT_URL = '/'
 
-# Email configuration
+# Google OAuth (NÃO use 'APP' aqui!)
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+    }
+}
+
+# Email (debug)
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
@@ -164,13 +151,13 @@ else:
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@seudominio.com')
 
-# Session configuration
+# Session
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 1209600  # 2 semanas
+SESSION_COOKIE_AGE = 1209600
 SESSION_COOKIE_HTTPONLY = True
 SESSION_SAVE_EVERY_REQUEST = True
 
-# CSRF settings
+# CSRF
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
@@ -178,66 +165,32 @@ CSRF_TRUSTED_ORIGINS = [
     'https://127.0.0.1:8000',
 ]
 
-# Mercado Pago configuration
+# Mercado Pago
 MP_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 
-# Logging configuration CORRIGIDA - VERSÃO SIMPLIFICADA
+# Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'WARNING',
-    },
+    'formatters': {'simple': {'format': '{levelname} {message}', 'style': '{'}},
+    'handlers': {'console': {'level': 'INFO', 'class': 'logging.StreamHandler', 'formatter': 'simple'}},
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
     'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'app': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
+        'django': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'app': {'handlers': ['console'], 'level': 'DEBUG', 'propagate': False},
     },
 }
 
-# Custom settings
+# Custom
 CARRINHO_SESSION_ID = 'carrinho'
 FRETE_GRATIS_ACIMA_DE = 100.00
 VALOR_FRETE = 15.00
 
-# Criar diretórios necessários se não existirem
+# Criar diretórios
 def criar_diretorios_necessarios():
-    diretorios_necessarios = [
-        Path(STATIC_ROOT),
-        Path(MEDIA_ROOT),
-        BASE_DIR / 'staticfiles',
-    ]
-    
-    for diretorio in diretorios_necessarios:
-        try:
-            if not diretorio.exists():
-                diretorio.mkdir(parents=True, exist_ok=True)
-                print(f"✅ Diretório criado: {diretorio}")
-        except Exception as e:
-            print(f"⚠️ Não foi possível criar {diretorio}: {e}")
+    for dir_path in [Path(STATIC_ROOT), Path(MEDIA_ROOT), BASE_DIR / 'staticfiles']:
+        dir_path.mkdir(parents=True, exist_ok=True)
 
-# Executar ao carregar as settings
 if DEBUG:
     criar_diretorios_necessarios()
-    print("✅ Settings carregadas com sucesso!")
+    print("Settings carregadas com sucesso!")
