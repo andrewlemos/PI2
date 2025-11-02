@@ -1,155 +1,213 @@
-# 🧼 Paraná Produtos de Limpeza
+# Paraná Produtos de Limpeza
 
-Loja online de **produtos de limpeza** construída com **Django**, **Bootstrap 5** e **Django Allauth** para autenticação. Possui frontend moderno, carrinho de compras, página de checkout, galeria de produtos e upload de imagens pelo admin.
-
----
-
-## 🌐 Tecnologias Utilizadas
-
-- **Backend:** Python 3.x, Django 4.x, SQLite  
-- **Autenticação:** Django Allauth  
-- **Frontend:** Bootstrap 5.3, Font Awesome 6, HTML5, CSS3, JS, jQuery  
-- **Gerenciamento de arquivos:** Upload de imagens via admin, armazenadas em `media/produtos/`
+Loja online de produtos de limpeza construída com Django, Bootstrap 5 e Django Allauth para autenticação.  
+Inclui carrinho persistente, cupons de desconto, controle de estoque, frete grátis, endereço completo no admin e pagamento via Mercado Pago.
 
 ---
 
-## 📁 Estrutura do Projeto
+## Tecnologias Utilizadas
 
-app/ – App principal  
-- admin.py  
-- apps.py  
-- models.py  
-- urls.py  
-- views.py  
+- Backend: Python 3.11+, Django 5, SQLite (desenvolvimento)  
+- Frontend: Bootstrap 5.3, Font Awesome 6, HTML5, CSS3, JavaScript (ES6), jQuery  
+- Autenticação: Django Allauth + Login com Google  
+- Pagamentos: Mercado Pago (Checkout Pro)  
+- Armazenamento: media/produtos/ (imagens), localStorage (carrinho)
+
+---
+
+## Estrutura do Projeto
+
+app/  
+- admin.py → Painel admin com endereço completo  
+- models.py → Produto, Pedido, Cupom, ItemPedido  
+- views.py → APIs, checkout, pagamento  
+- urls.py
+- adapters.py
+- middleware.py
+- signals.py 
 - migrations/
 
-ecommerce/ – Configurações do Django  
-- settings.py  
-- urls.py  
+ecommerce/  
+- settings.py → Configurações + .env  
+- urls.py
 - wsgi.py
 
-media/produtos/ – Imagens dos produtos (upload via admin)
-
-static/ – Arquivos estáticos  
+static/  
 - css/style.css  
-- js/carrinho.js  
-- js/main.js
+- js/carrinho.js → Carrinho + cupom + estoque  
+- img/
 
-templates/ – Templates HTML  
+templates/  
 - base.html  
 - index.html  
 - checkout.html  
 - produto.html
+- compra_confirmada.html
+- compra_errada.html
+- detalhe_pedido.html
+- meus_pedidos.html
+- acconunt/
 
-db.sqlite3 – Banco de dados SQLite  
-manage.py – Gerenciador do Django  
-requirements.txt – Dependências do projeto
-
----
-
-## ⚙️ Instalação
-
-Clone o repositório:
-
-git clone https://github.com/seu-usuario/parana-produtos-limpeza.git  
-cd andrewlemos
-
-Crie e ative um ambiente virtual:
-
-# Linux / macOS
-python -m venv venv  
-source venv/bin/activate
-
-# Windows
-python -m venv venv  
-venv\Scripts\activate.bat
-
-Instale as dependências:
-
-pip install -r requirements.txt
-
-Aplique as migrações:
-
-python manage.py makemigrations  
-python manage.py migrate
-
-Crie um superusuário para acessar o admin:
-
-python manage.py createsuperuser
+media/produtos/ → Upload de imagens  
+db.sqlite3  
+manage.py  
+requirements.txt
 
 ---
 
-## 🖼️ Configuração de Mídia
+## Instalação
 
-Para que as imagens adicionadas no admin apareçam no site, adicione no **settings.py**:
+1. Clone o repositório  
+   git clone https://github.com/seu-usuario/parana-produtos-limpeza.git  
+   cd parana-produtos-limpeza
 
+2. Crie e ative o ambiente virtual  
+   python -m venv venv  
+   source venv/bin/activate  (Linux/macOS)  
+   venv\Scripts\activate     (Windows)
+
+3. Instale as dependências  
+   pip install -r requirements.txt
+
+4. Configure o .env  
+   cp .env.example .env
+
+5. Aplique as migrações  
+   python manage.py makemigrations  
+   python manage.py migrate
+
+6. Crie um superusuário  
+   python manage.py createsuperuser
+
+---
+
+## Configuração de Mídia
+
+No arquivo ecommerce/settings.py:  
 MEDIA_URL = '/media/'  
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
 
-No **urls.py** do projeto (`ecommerce/urls.py`):
-
-from django.conf import settings  
-from django.conf.urls.static import static  
-
-urlpatterns = [  
-    path('admin/', admin.site.urls),  
-    path('accounts/', include('allauth.urls')),  
-    path('', include('app.urls')),  
-]  
-
-if settings.DEBUG:  
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+No arquivo ecommerce/urls.py:  
+Adicione no final, dentro do if settings.DEBUG:  
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 ---
 
-## 🚀 Executando o Projeto
+## Executando
 
 python manage.py runserver
 
-- Site: http://127.0.0.1:8000  
-- Admin: http://127.0.0.1:8000/admin
+Site: http://127.0.0.1:8000  
+Admin: http://127.0.0.1:8000/admin
 
 ---
 
-## 📦 Funcionalidades
+## Funcionalidades
 
-- Página inicial com **hero section** e categorias em destaque  
-- **Listagem de produtos** com cards modernos e badges de desconto  
-- **Carrinho de compras** persistente via `sessionStorage`  
-- **Página de detalhes do produto** com galeria de imagens  
-- **Checkout** com resumo do pedido  
-- **Autenticação** via Django Allauth  
-- **Upload de imagens** pelo admin (`media/produtos/`)  
-- **Notificações toast** para feedback de ações  
-- Layout responsivo para desktop e mobile
-
----
-
-## 📝 Modelos no Admin
-
-Modelo principal: Produto  
-
-Campo | Tipo | Observação  
---- | --- | ---  
-nome | CharField | Nome do produto  
-descricao | TextField | Descrição completa  
-preco | DecimalField | Preço atual  
-preco_original | DecimalField (opcional) | Preço antigo, se houver desconto  
-desconto | IntegerField (opcional) | % de desconto  
-imagem | ImageField | Upload para `media/produtos/`
+- Página inicial com hero e destaques  
+- Produtos com desconto e badges  
+- Carrinho persistente (localStorage)  
+- Checkout com formulário de entrega  
+- Cupons (fixo/percentual) com validade e limite  
+- Estoque com reserva e liberação automática  
+- Frete grátis acima de R$ 100  
+- Mercado Pago integrado  
+- Admin com endereço completo visível  
+- Ações em massa (pago, enviado, entregue)  
+- Notificações toast e layout responsivo
 
 ---
 
-## 🔒 Produção
+## Painel Admin – Destaques
 
-- DEBUG=False e configurar ALLOWED_HOSTS  
-- Servir arquivos estáticos e mídia via servidor (ex.: Nginx)  
-- Configurar gateway de pagamento real (ex.: Mercado Pago)  
-- Configurar SMTP real para envio de emails
+Pedidos  
+- Lista: ID, Cliente, Status, Valor, Endereço completo  
+- Detalhes: Resumo visual com 2 colunas (Dados pessoais × Endereço)  
+- Campos editáveis + JSON bruto
+
+Cupons  
+- Ação: "Limpar usos"  
+- Filtros por validade e tipo
 
 ---
 
-## 👨‍💻 Autor
+## Modelos no Admin
 
-Andrew Lemos – Desenvolvedor Fullstack  
-📧 Contato: andrewfmlemos@gmail.com
+Produto: Nome, Preço, Desconto, Estoque, Imagem  
+Pedido: Usuário, Status, Valor, Endereço, Cupom  
+ItemPedido: Produto, Quantidade, Subtotal  
+Cupom: Código, Tipo, Valor, Validade, Limite  
+CupomUso: Cupom, Pedido, Data
+
+---
+
+## Produção
+
+DEBUG=False  
+ALLOWED_HOSTS=seudominio.com  
+MP_ACCESS_TOKEN=SEU_TOKEN_REAL
+
+- Use PostgreSQL  
+- Sirva mídia/estáticos com Nginx  
+- Use Gunicorn  
+- Configure SMTP real
+
+
+---
+
+## Imagens
+
+<img width="1115" height="599" alt="Tela Inicial do Ecommerce" src="https://github.com/user-attachments/assets/49f35929-60ff-4a7e-9693-a942b8b8cb1b" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Pagamento pelo Mercado Pago" src="https://github.com/user-attachments/assets/9ba696fb-8886-4e7a-9129-0d1769e547d7" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Tela de acompanhamento de pedidos do Cliente" src="https://github.com/user-attachments/assets/44d2fbe3-5df4-4e14-a88a-d00ef1a5022e" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Controle de Pedidos" src="https://github.com/user-attachments/assets/b86e94bd-ac11-49c0-a1ba-dc24e6fe5d69" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Controle de Produtos" src="https://github.com/user-attachments/assets/3631bed5-181d-4a2e-9f79-3386e82555e7" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Cadastro de Produtos no Gerenciador do Admin" src="https://github.com/user-attachments/assets/01849fbd-0fef-4c7d-833d-11012a1bc08e" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Tela de Cadastro" src="https://github.com/user-attachments/assets/e86cb98d-8f7e-4592-9b06-721f408154cd" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Página de Detalhes dos Produtos" src="https://github.com/user-attachments/assets/0a89f265-fe79-4eab-9083-539a0a0dd55e" />
+
+<br><br>
+
+<img width="1017" height="882" alt="Cupom cliente" src="https://github.com/user-attachments/assets/3e58aa89-efd8-4097-a979-fbf7ef3734ad" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Cupom empresa" src="https://github.com/user-attachments/assets/5bdd65a2-8f19-4f18-b976-fabc4f0d820d" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Login com Google OAuth" src="https://github.com/user-attachments/assets/5180f584-6025-431e-9f68-db6a7ede4e3c" />
+
+<br><br>
+
+<img width="1115" height="599" alt="Redirecionamento do Login do Google" src="https://github.com/user-attachments/assets/8bd06316-78b7-4e49-9c12-38d4e863dbda" />
+
+---
+
+## Autor
+
+Andrew Lemos  
+Desenvolvedor Fullstack  
+andrewfmlemos@gmail.com  
+github.com/andrewlemos
