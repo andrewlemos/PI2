@@ -245,6 +245,29 @@ async function buscarEnderecoPorCEP(cep) {
         console.log('Erro ao buscar CEP:', error);
     }
 }
+
+debugCupomEnvio() {
+    console.log('=== DEBUG CUPOM ===');
+    console.log('Cupom aplicado:', this.cupomAplicado);
+    console.log('Carrinho:', this.obterCarrinho());
+    
+    const dadosEntrega = {
+        nome: document.getElementById('nome').value,
+        email: document.getElementById('email').value,
+        // ... outros campos
+    };
+    
+    if (this.cupomAplicado && this.cupomAplicado.codigo) {
+        dadosEntrega.cupom = this.cupomAplicado.codigo;
+    }
+    
+    console.log('Dados enviados para API:', {
+        itens: this.obterCarrinho(),
+        dados_entrega: dadosEntrega
+    });
+}
+
+
 </script>
 
 <style>

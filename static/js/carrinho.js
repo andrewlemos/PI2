@@ -527,14 +527,19 @@ class CarrinhoManager {
             complemento: document.getElementById('complemento').value,
             bairro: document.getElementById('bairro').value,
             cidade: document.getElementById('cidade').value,
-            estado: document.getElementById('estado').value
+            estado: document.getElementById('estado').value,
+            // CORREÇÃO: ADICIONAR CUPOM AOS DADOS DE ENTREGA
+            cupom: this.cupomAplicado ? this.cupomAplicado.codigo : ''
         };
 
-        // CORREÇÃO: Adicionar cupom se existir
-        if (this.cupomAplicado && this.cupomAplicado.codigo) {
-            dadosEntrega.cupom = this.cupomAplicado.codigo;
-            console.log('Cupom sendo enviado:', this.cupomAplicado.codigo); // Para debug
-        }
+        // DEBUG: Verificar se o cupom está sendo enviado
+        console.log('=== DEBUG FINALIZAR COMPRA ===');
+        console.log('Cupom aplicado:', this.cupomAplicado);
+        console.log('Cupom sendo enviado:', dadosEntrega.cupom);
+        console.log('Dados completos:', {
+            itens: carrinho,
+            dados_entrega: dadosEntrega
+        });
 
         try {
             const btn = document.getElementById('btn-finalizar-pagamento');

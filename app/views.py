@@ -72,7 +72,7 @@ def validar_itens_carrinho(itens_carrinho):
     return {'success': True}
 
 # ===============================
-# API: APLICAR CUPOM (100% CORRIGIDA)
+# API: APLICAR CUPOM (CORRIGIDA - VALIDAÇÃO COMPLETA)
 # ===============================
 @csrf_exempt
 @require_POST
@@ -105,13 +105,17 @@ def aplicar_cupom(request):
         if cupom.data_fim and agora > data_fim_cupom:
             return JsonResponse({'success': False, 'error': 'Cupom expirado.'}, status=400)
 
-        if cupom.limite_uso and cupom.usos.count() >= cupom.limite_uso:
-            return JsonResponse({'success': False, 'error': 'Limite de usos do cupom esgotado.'}, status=400)
+        # CORREÇÃO: Verificar limite de uso geral
+        if cupom.limite_uso:
+            usos_totais = cupom.usos.count()
+            if usos_totais >= cupom.limite_uso:
+                return JsonResponse({'success': False, 'error': 'Limite de usos do cupom esgotado.'}, status=400)
 
+        # CORREÇÃO: Verificar limite por usuário
         if cupom.limite_por_usuario and request.user.is_authenticated:
             usos_usuario = cupom.usos.filter(pedido__usuario=request.user).count()
             if usos_usuario >= cupom.limite_por_usuario:
-                return JsonResponse({'success': False, 'error': 'Você já usou este cupom.'}, status=400)
+                return JsonResponse({'success': False, 'error': 'Você já usou este cupom o número máximo de vezes permitido.'}, status=400)
 
         # CORREÇÃO: Converter tudo para float antes dos cálculos
         subtotal = sum(float(i.get('preco', 0)) * int(i.get('quantidade', 1)) for i in itens)
@@ -137,7 +141,7 @@ def aplicar_cupom(request):
         return JsonResponse({'success': False, 'error': 'Erro ao validar cupom.'}, status=500)
 
 # ===============================
-# API: CRIAR PREFERÊNCIA (CUPOM SINCRONIZADO)
+# API: CRIAR PREFERÊNCIA (CUPOM SINCRONIZADO COM REGISTRO DE USO)
 # ===============================
 @csrf_exempt
 @require_POST
@@ -195,10 +199,15 @@ def criar_preferencia_pagamento(request):
                         desconto_cupom = subtotal * (valor_cupom_float / 100)
                     else:
                         desconto_cupom = min(valor_cupom_float, subtotal)
+                    logger.info(f"Cupom {cupom_codigo} aplicado: desconto de R$ {desconto_cupom:.2f}")
             except Cupom.DoesNotExist:
                 cupom = None
+                logger.warning(f"Cupom {cupom_codigo} não encontrado")
 
         total = max(subtotal + frete - desconto_cupom, 0)
+        
+        # LOG PARA DEBUG
+        logger.info(f"Subtotal: R$ {subtotal:.2f}, Frete: R$ {frete:.2f}, Desconto: R$ {desconto_cupom:.2f}, Total: R$ {total:.2f}")
 
         # ITENS PARA MP
         items_mp = []
@@ -230,6 +239,7 @@ def criar_preferencia_pagamento(request):
                 "currency_id": "BRL",
                 "unit_price": -float(desconto_cupom)  # VALOR NEGATIVO
             })
+            logger.info(f"Item de desconto adicionado: -R$ {desconto_cupom:.2f}")
 
         with transaction.atomic():
             pedido = Pedido.objects.create(
@@ -260,6 +270,13 @@ def criar_preferencia_pagamento(request):
                     preco_unitario=float(item['preco'])
                 )
 
+            # CORREÇÃO: REGISTRAR USO DO CUPOM IMEDIATAMENTE AO CRIAR O PEDIDO
+            if cupom:
+                # Verificar se já existe um uso para evitar duplicação
+                if not CupomUso.objects.filter(cupom=cupom, pedido=pedido).exists():
+                    CupomUso.objects.create(cupom=cupom, pedido=pedido)
+                    logger.info(f"Cupom {cupom_codigo} registrado para o pedido {pedido.id}")
+
         base_url = request.build_absolute_uri('/').rstrip('/')
         preference_data = {
             "items": items_mp,
@@ -281,6 +298,9 @@ def criar_preferencia_pagamento(request):
             pedido.preference_id = payment["id"]
             pedido.save()
 
+            # LOG FINAL
+            logger.info(f"Preferência criada com sucesso. Total: R$ {total:.2f}, Desconto: R$ {desconto_cupom:.2f}")
+
             return JsonResponse({
                 'success': True,
                 'init_point': payment["init_point"],
@@ -290,6 +310,10 @@ def criar_preferencia_pagamento(request):
         else:
             pedido.status = 'cancelado'
             pedido.save()
+            # CORREÇÃO: Se falhar, remover o uso do cupom
+            if cupom:
+                CupomUso.objects.filter(cupom=cupom, pedido=pedido).delete()
+                logger.info(f"Uso do cupom {cupom_codigo} removido devido a erro no Mercado Pago")
             return JsonResponse({'error': 'Erro no Mercado Pago'}, status=400)
 
     except Exception as e:
@@ -297,7 +321,7 @@ def criar_preferencia_pagamento(request):
         return JsonResponse({'error': 'Erro interno'}, status=500)
 
 # ===============================
-# WEBHOOK: REGISTRA USO DO CUPOM
+# WEBHOOK: REGISTRA USO DO CUPOM (CORRIGIDO)
 # ===============================
 @csrf_exempt
 @require_POST
@@ -325,13 +349,19 @@ def webhook_mercadopago(request):
                         pedido.status = 'pago'
                         for item in pedido.itens.all():
                             item.produto.reservar_estoque(item.quantidade)
-                        if pedido.cupom:
+                        # CORREÇÃO: Verificar se o uso do cupom já foi registrado
+                        if pedido.cupom and not CupomUso.objects.filter(cupom=pedido.cupom, pedido=pedido).exists():
                             CupomUso.objects.create(cupom=pedido.cupom, pedido=pedido)
+                            logger.info(f"Cupom {pedido.cupom.codigo} registrado via webhook para pedido {pedido.id}")
                     elif status in ['cancelled', 'rejected']:
                         pedido.status = 'cancelado'
+                        # CORREÇÃO: Remover uso do cupom se o pagamento falhar
+                        if pedido.cupom:
+                            CupomUso.objects.filter(cupom=pedido.cupom, pedido=pedido).delete()
+                            logger.info(f"Uso do cupom {pedido.cupom.codigo} removido devido a cancelamento do pedido {pedido.id}")
                     pedido.save()
                 except Pedido.DoesNotExist:
-                    pass
+                    logger.warning(f"Pedido {pedido_id} não encontrado no webhook")
         return JsonResponse({'status': 'processed'})
     except Exception as e:
         logger.error(f"Webhook error: {e}")
@@ -461,6 +491,10 @@ def obter_status_pedido(request, pedido_id):
 def cancelar_pedido_api(request, pedido_id):
     pedido = get_object_or_404(Pedido, id=pedido_id, usuario=request.user)
     if pedido.cancelar_pedido():
+        # CORREÇÃO: Remover uso do cupom ao cancelar pedido
+        if pedido.cupom:
+            CupomUso.objects.filter(cupom=pedido.cupom, pedido=pedido).delete()
+            logger.info(f"Uso do cupom {pedido.cupom.codigo} removido devido a cancelamento manual do pedido {pedido.id}")
         return JsonResponse({'success': True, 'message': 'Pedido cancelado'})
     return JsonResponse({'success': False, 'message': 'Não pode ser cancelado'}, status=400)
 

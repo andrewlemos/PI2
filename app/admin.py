@@ -343,7 +343,7 @@ class ProdutoAdmin(admin.ModelAdmin):
 
 
 # ===============================
-# ADMIN: CUPOM DE DESCONTO
+# ADMIN: CUPOM DE DESCONTO (COM AÇÃO PARA LIMPAR USOS)
 # ===============================
 @admin.register(Cupom)
 class CupomAdmin(admin.ModelAdmin):
@@ -352,6 +352,10 @@ class CupomAdmin(admin.ModelAdmin):
     search_fields = ['codigo']
     list_editable = ['ativo', 'valor', 'limite_uso']
     readonly_fields = ['criado_em', 'usos_atual']
+    
+    # ADICIONADO: Ação para limpar usos de cupom
+    actions = ['limpar_usos_cupom']
+    
     fieldsets = (
         ('Informações Básicas', {
             'fields': ('codigo', 'tipo', 'valor')
@@ -380,6 +384,17 @@ class CupomAdmin(admin.ModelAdmin):
     def usos_atual(self, obj):
         return obj.usos.count()
     usos_atual.short_description = 'Usos'
+
+    def limpar_usos_cupom(self, request, queryset):
+        """Remove todos os usos dos cupons selecionados"""
+        total_usos = 0
+        for cupom in queryset:
+            usos = cupom.usos.count()
+            cupom.usos.all().delete()
+            total_usos += usos
+        
+        self.message_user(request, f"✅ {total_usos} uso(s) de cupom removido(s) para {queryset.count()} cupom(ns).")
+    limpar_usos_cupom.short_description = "🧹 Limpar usos dos cupons selecionados"
 
 
 # ===============================
