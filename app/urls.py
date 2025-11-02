@@ -54,4 +54,5 @@ urlpatterns = [
     # ===============================
     path('api/pedido/<int:pedido_id>/status/', views.obter_status_pedido, name='obter_status_pedido'),
     path('api/pedido/<int:pedido_id>/cancelar/', views.cancelar_pedido_api, name='cancelar_pedido_api'),
+    path('api/aplicar-cupom/', views.aplicar_cupom, name='api_aplicar_cupom'),
 ]

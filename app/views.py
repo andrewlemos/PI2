@@ -10,7 +10,8 @@ from django.contrib.auth import logout as auth_logout
 from django.db import transaction
 from django.db.models import Q
 from django.conf import settings
-from .models import Produto, Pedido, ItemPedido
+from django.utils import timezone
+from .models import Produto, Pedido, ItemPedido, Cupom, CupomUso
 import mercadopago
 from dotenv import load_dotenv
 
@@ -22,14 +23,12 @@ logger = logging.getLogger(__name__)
 # CONFIGURAÇÃO MERCADO PAGO
 # ===============================
 def get_mp_access_token():
-    """Obtém o access token do Mercado Pago com fallback"""
     token = os.getenv("MP_ACCESS_TOKEN")
     if not token:
-        logger.error("MP_ACCESS_TOKEN não encontrado nas variáveis de ambiente")
+        logger.error("MP_ACCESS_TOKEN não encontrado")
     return token
 
 def get_mp_sdk():
-    """Inicializa e retorna a SDK do Mercado Pago"""
     token = get_mp_access_token()
     if not token:
         raise ValueError("Access Token do Mercado Pago não configurado")
@@ -49,148 +48,196 @@ def logout_redirect(request):
 # VALIDAÇÕES
 # ===============================
 def validar_dados_entrega(dados_entrega):
-    """Valida os dados de entrega obrigatórios"""
     campos_obrigatorios = ['nome', 'email', 'cep', 'endereco', 'bairro', 'cidade', 'estado']
-    campos_faltando = []
-    
-    for campo in campos_obrigatorios:
-        valor = dados_entrega.get(campo, '').strip()
-        if not valor:
-            campos_faltando.append(campo)
-    
-    return campos_faltando
+    faltando = [c for c in campos_obrigatorios if not dados_entrega.get(c, '').strip()]
+    return faltando
 
 def validar_itens_carrinho(itens_carrinho):
-    """Valida os itens do carrinho e verifica estoque"""
     if not itens_carrinho:
         return {'error': 'Carrinho vazio'}
-    
     for item in itens_carrinho:
         try:
             produto_id = item.get('id')
             quantidade = int(item.get('quantidade', 1))
             preco = float(item.get('preco', 0))
-            
-            if not produto_id:
-                return {'error': 'ID do produto não informado'}
-            
-            if quantidade <= 0:
-                return {'error': f'Quantidade inválida para produto {produto_id}'}
-            
-            if preco <= 0:
-                return {'error': f'Preço inválido para produto {produto_id}'}
-            
-            # Verificar se produto existe e tem estoque
+            if not produto_id or quantidade <= 0 or preco <= 0:
+                return {'error': 'Dados inválidos no item'}
             produto = Produto.objects.get(id=produto_id)
             if not produto.estoque_disponivel(quantidade):
-                return {
-                    'error': f'Estoque insuficiente para {produto.nome}. Disponível: {produto.estoque}'
-                }
-                
+                return {'error': f'Estoque insuficiente para {produto.nome}'}
         except Produto.DoesNotExist:
             return {'error': f'Produto não encontrado: {produto_id}'}
-        except ValueError as e:
-            return {'error': f'Dados inválidos no item: {str(e)}'}
         except Exception as e:
-            return {'error': f'Erro ao validar item: {str(e)}'}
-    
+            return {'error': str(e)}
     return {'success': True}
 
 # ===============================
-# API: CRIAR PREFERÊNCIA MERCADO PAGO - VERSÃO SIMPLIFICADA
+# API: APLICAR CUPOM (100% CORRIGIDA)
+# ===============================
+@csrf_exempt
+@require_POST
+def aplicar_cupom(request):
+    try:
+        data = json.loads(request.body)
+        codigo = data.get('codigo', '').strip().upper()
+        itens = data.get('itens', [])
+
+        if not codigo:
+            return JsonResponse({'success': False, 'error': 'Digite o código do cupom.'}, status=400)
+        if not itens:
+            return JsonResponse({'success': False, 'error': 'Adicione itens ao carrinho primeiro.'}, status=400)
+
+        # Buscar cupom
+        try:
+            cupom = Cupom.objects.get(codigo=codigo, ativo=True)
+        except Cupom.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Cupom inválido ou inativo.'}, status=404)
+
+        # CORREÇÃO: Garantir que ambas as datas sejam do mesmo tipo
+        agora = timezone.now().date()
+
+        # Converter datas do cupom para date se necessário
+        data_inicio_cupom = cupom.data_inicio.date() if hasattr(cupom.data_inicio, 'date') else cupom.data_inicio
+        data_fim_cupom = cupom.data_fim.date() if cupom.data_fim and hasattr(cupom.data_fim, 'date') else cupom.data_fim
+
+        if cupom.data_inicio and agora < data_inicio_cupom:
+            return JsonResponse({'success': False, 'error': 'Cupom ainda não está válido.'}, status=400)
+        if cupom.data_fim and agora > data_fim_cupom:
+            return JsonResponse({'success': False, 'error': 'Cupom expirado.'}, status=400)
+
+        if cupom.limite_uso and cupom.usos.count() >= cupom.limite_uso:
+            return JsonResponse({'success': False, 'error': 'Limite de usos do cupom esgotado.'}, status=400)
+
+        if cupom.limite_por_usuario and request.user.is_authenticated:
+            usos_usuario = cupom.usos.filter(pedido__usuario=request.user).count()
+            if usos_usuario >= cupom.limite_por_usuario:
+                return JsonResponse({'success': False, 'error': 'Você já usou este cupom.'}, status=400)
+
+        # CORREÇÃO: Converter tudo para float antes dos cálculos
+        subtotal = sum(float(i.get('preco', 0)) * int(i.get('quantidade', 1)) for i in itens)
+        valor_cupom = float(cupom.valor)  # Converter Decimal para float
+        
+        if cupom.tipo == 'percentual':
+            desconto = subtotal * (valor_cupom / 100)
+        else:
+            desconto = min(valor_cupom, subtotal)
+
+        return JsonResponse({
+            'success': True,
+            'desconto': round(desconto, 2),
+            'cupom': {
+                'codigo': cupom.codigo,
+                'tipo': cupom.get_tipo_display(),
+                'valor': valor_cupom  # Já convertido para float
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao aplicar cupom: {e}")
+        return JsonResponse({'success': False, 'error': 'Erro ao validar cupom.'}, status=500)
+
+# ===============================
+# API: CRIAR PREFERÊNCIA (CUPOM SINCRONIZADO)
 # ===============================
 @csrf_exempt
 @require_POST
 def criar_preferencia_pagamento(request):
-    """
-    Cria uma preferência de pagamento no Mercado Pago - Versão Simplificada
-    """
     try:
-        logger.info("=== INICIANDO CRIAÇÃO DE PREFERÊNCIA DE PAGAMENTO ===")
-        
-        # Verificar se o body está vazio
+        logger.info("=== INICIANDO CRIAÇÃO DE PREFERÊNCIA ===")
         if not request.body:
-            logger.error("Body vazio na requisição")
             return JsonResponse({'error': 'Body vazio'}, status=400)
-        
-        # Parse do JSON
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError as e:
-            logger.error(f"Erro ao decodificar JSON: {str(e)}")
-            return JsonResponse({'error': 'JSON inválido'}, status=400)
-        
+
+        data = json.loads(request.body)
         itens_carrinho = data.get('itens', [])
         dados_entrega = data.get('dados_entrega', {})
 
-        logger.info(f"Processando {len(itens_carrinho)} itens do carrinho")
-
-        # Validar dados básicos
         if not itens_carrinho:
             return JsonResponse({'error': 'Carrinho vazio'}, status=400)
 
-        # Validar dados de entrega
         campos_faltando = validar_dados_entrega(dados_entrega)
         if campos_faltando:
-            return JsonResponse({
-                'error': f'Campos obrigatórios faltando: {", ".join(campos_faltando)}'
-            }, status=400)
+            return JsonResponse({'error': f'Campos faltando: {", ".join(campos_faltando)}'}, status=400)
 
-        # Validar itens do carrinho
-        validacao_itens = validar_itens_carrinho(itens_carrinho)
-        if 'error' in validacao_itens:
-            return JsonResponse({'error': validacao_itens['error']}, status=400)
+        validacao = validar_itens_carrinho(itens_carrinho)
+        if 'error' in validacao:
+            return JsonResponse({'error': validacao['error']}, status=400)
 
-        # Inicializar SDK do Mercado Pago
-        try:
-            sdk = get_mp_sdk()
-        except ValueError as e:
-            logger.error(f"Erro na configuração do Mercado Pago: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=500)
+        # CÁLCULO COM CUPOM
+        subtotal = sum(float(i['preco']) * int(i['quantidade']) for i in itens_carrinho)
+        frete = 0 if subtotal >= getattr(settings, 'FRETE_GRATIS_ACIMA_DE', 100) else getattr(settings, 'VALOR_FRETE', 15)
 
-        # Calcular totais
-        subtotal = 0
-        for item in itens_carrinho:
-            preco = float(item['preco'])
-            quantidade = int(item['quantidade'])
-            subtotal += preco * quantidade
+        cupom_codigo = dados_entrega.get('cupom', '').strip().upper()
+        cupom = None
+        desconto_cupom = 0
 
-        frete_gratis_acima_de = getattr(settings, 'FRETE_GRATIS_ACIMA_DE', 100)
-        valor_frete = getattr(settings, 'VALOR_FRETE', 15)
-        frete = 0 if subtotal >= frete_gratis_acima_de else valor_frete
-        total = subtotal + frete
+        if cupom_codigo:
+            try:
+                cupom = Cupom.objects.get(codigo=cupom_codigo, ativo=True)
+                # CORREÇÃO: Garantir que ambas as datas sejam do mesmo tipo
+                agora = timezone.now().date()
 
-        logger.info(f"Totais - Subtotal: R$ {subtotal:.2f}, Frete: R$ {frete:.2f}, Total: R$ {total:.2f}")
+                # Converter datas do cupom para date se necessário
+                data_inicio_cupom = cupom.data_inicio.date() if hasattr(cupom.data_inicio, 'date') else cupom.data_inicio
+                data_fim_cupom = cupom.data_fim.date() if cupom.data_fim and hasattr(cupom.data_fim, 'date') else cupom.data_fim
 
-        # Preparar itens para Mercado Pago
+                if (cupom.data_inicio and agora < data_inicio_cupom) or (cupom.data_fim and agora > data_fim_cupom):
+                    cupom = None
+                elif cupom.limite_uso and cupom.usos.count() >= cupom.limite_uso:
+                    cupom = None
+                elif cupom.limite_por_usuario and request.user.is_authenticated:
+                    usos = cupom.usos.filter(pedido__usuario=request.user).count()
+                    if usos >= cupom.limite_por_usuario:
+                        cupom = None
+                if cupom:
+                    # CORREÇÃO: Converter Decimal para float
+                    valor_cupom_float = float(cupom.valor)
+                    if cupom.tipo == 'percentual':
+                        desconto_cupom = subtotal * (valor_cupom_float / 100)
+                    else:
+                        desconto_cupom = min(valor_cupom_float, subtotal)
+            except Cupom.DoesNotExist:
+                cupom = None
+
+        total = max(subtotal + frete - desconto_cupom, 0)
+
+        # ITENS PARA MP
         items_mp = []
         for item in itens_carrinho:
             items_mp.append({
                 "id": str(item['id']),
                 "title": item['nome'][:250],
-                "description": f"Produto: {item['nome']}"[:500],
                 "quantity": int(item['quantidade']),
                 "currency_id": "BRL",
                 "unit_price": float(item['preco'])
             })
-        
-        # Adicionar frete como item separado se houver
+
+        # ADICIONAR FRETE COMO ITEM SEPARADO
         if frete > 0:
             items_mp.append({
                 "id": "frete",
                 "title": "Taxa de Entrega",
-                "description": "Custo do frete",
                 "quantity": 1,
                 "currency_id": "BRL",
                 "unit_price": float(frete)
             })
 
-        # Criar pedido no banco dentro de uma transação
+        # CORREÇÃO: ADICIONAR DESCONTO DO CUPOM COMO ITEM NEGATIVO
+        if desconto_cupom > 0:
+            items_mp.append({
+                "id": "desconto_cupom",
+                "title": f"Desconto - {cupom_codigo}",
+                "quantity": 1,
+                "currency_id": "BRL",
+                "unit_price": -float(desconto_cupom)  # VALOR NEGATIVO
+            })
+
         with transaction.atomic():
             pedido = Pedido.objects.create(
                 usuario=request.user if request.user.is_authenticated else None,
                 status='pendente',
                 valor_total=total,
+                cupom=cupom,
+                desconto_cupom=round(desconto_cupom, 2),
                 nome_entrega=dados_entrega.get('nome', '').strip(),
                 email_entrega=dados_entrega.get('email', '').strip(),
                 telefone_entrega=dados_entrega.get('telefone', '').strip(),
@@ -203,8 +250,7 @@ def criar_preferencia_pagamento(request):
                 cep=dados_entrega.get('cep', '').strip(),
                 dados_entrega=json.dumps(dados_entrega, ensure_ascii=False)
             )
-            
-            # Criar itens do pedido
+
             for item in itens_carrinho:
                 produto = Produto.objects.get(id=item['id'])
                 ItemPedido.objects.create(
@@ -214,162 +260,87 @@ def criar_preferencia_pagamento(request):
                     preco_unitario=float(item['preco'])
                 )
 
-            logger.info(f"Pedido #{pedido.id} criado com sucesso")
-
-        # Configurar URLs de retorno - VERSÃO SIMPLIFICADA
-        base_url = 'http://127.0.0.1:8000'
-        
-        # URLs básicas sem parâmetros (o Mercado Pago é sensível a isso)
-        back_urls = {
-            "success": f"{base_url}/compra-confirmada/",
-            "failure": f"{base_url}/compra-erro/", 
-            "pending": f"{base_url}/compra-pendente/"
-        }
-
-        # Configuração MÍNIMA da preferência
+        base_url = request.build_absolute_uri('/').rstrip('/')
         preference_data = {
             "items": items_mp,
-            "back_urls": back_urls,
-            # REMOVIDO: auto_return - causa problemas
+            "back_urls": {
+                "success": f"{base_url}/compra-confirmada/?pedido_id={pedido.id}",
+                "failure": f"{base_url}/compra-erro/",
+                "pending": f"{base_url}/compra-pendente/"
+            },
             "external_reference": str(pedido.id),
-            # REMOVIDO: notification_url temporariamente para simplificar
             "statement_descriptor": "MINHA LOJA",
-            "binary_mode": True,
-            "expires": False,  # A preferência não expira
+            "binary_mode": True
         }
 
-        logger.info(f"Enviando preferência para Mercado Pago: {len(items_mp)} itens")
-        logger.info(f"Back URLs: {back_urls}")
-
-        # Criar preferência no Mercado Pago
+        sdk = get_mp_sdk()
         result = sdk.preference().create(preference_data)
-
-        logger.info(f"Resposta Mercado Pago - Status: {result.get('status')}")
 
         if result["status"] in [200, 201]:
             payment = result["response"]
-            
-            # Atualizar pedido com ID da preferência
             pedido.preference_id = payment["id"]
             pedido.save()
-            
-            # Construir URL de redirecionamento com parâmetros
-            init_point = payment["init_point"]
-            
-            response_data = {
+
+            return JsonResponse({
                 'success': True,
-                'init_point': init_point,
+                'init_point': payment["init_point"],
                 'preference_id': payment["id"],
-                'pedido_id': pedido.id,
-                'message': 'Preferência criada com sucesso'
-            }
-            
-            logger.info(f"✅ Preferência {payment['id']} criada com sucesso para pedido #{pedido.id}")
-            logger.info(f"🔗 Init Point: {init_point}")
-            
-            return JsonResponse(response_data)
-            
+                'pedido_id': pedido.id
+            })
         else:
-            # Reverter pedido se falhar no Mercado Pago
             pedido.status = 'cancelado'
             pedido.save()
-            
-            error_details = result.get('response', {})
-            logger.error(f"❌ Erro Mercado Pago - Status: {result['status']}, Detalhes: {error_details}")
-            
-            error_message = error_details.get('message', 'Erro desconhecido no Mercado Pago')
-            
-            return JsonResponse({
-                'error': f'Erro ao criar pagamento: {error_message}',
-                'detalhes': error_details,
-                'status_code': result["status"]
-            }, status=400)
+            return JsonResponse({'error': 'Erro no Mercado Pago'}, status=400)
 
     except Exception as e:
-        logger.error(f"💥 Erro interno na criação de preferência: {str(e)}", exc_info=True)
-        
-        # Tentar reverter pedido se foi criado
-        if 'pedido' in locals() and pedido.id:
-            try:
-                pedido.status = 'cancelado'
-                pedido.save()
-                logger.info(f"Pedido #{pedido.id} cancelado devido a erro interno")
-            except Exception:
-                pass
-        
-        return JsonResponse({
-            'error': f'Erro interno do servidor: {str(e)}'
-        }, status=500)
+        logger.error(f"Erro: {e}", exc_info=True)
+        return JsonResponse({'error': 'Erro interno'}, status=500)
 
 # ===============================
-# WEBHOOK MERCADO PAGO (OPCIONAL POR ENQUANTO)
+# WEBHOOK: REGISTRA USO DO CUPOM
 # ===============================
 @csrf_exempt
 @require_POST
 def webhook_mercadopago(request):
-    """
-    Processa notificações do Mercado Pago - Versão Simplificada
-    """
     try:
         data = json.loads(request.body)
-        logger.info(f"📩 Webhook recebido - Tipo: {data.get('type')}")
-
         if data.get('type') == 'payment':
             payment_id = data.get('data', {}).get('id')
             if not payment_id:
                 return JsonResponse({'status': 'ignored'})
 
-            try:
-                sdk = get_mp_sdk()
-                payment_info = sdk.payment().get(payment_id)
-                
-                if payment_info["status"] != 200:
-                    return JsonResponse({'status': 'error'})
+            sdk = get_mp_sdk()
+            payment_info = sdk.payment().get(payment_id)
+            if payment_info["status"] != 200:
+                return JsonResponse({'status': 'error'})
 
-                payment = payment_info["response"]
-                pedido_id = payment.get('external_reference')
-                status = payment.get('status')
+            payment = payment_info["response"]
+            pedido_id = payment.get('external_reference')
+            status = payment.get('status')
 
-                logger.info(f"💰 Pagamento {payment_id} - Status: {status}, Pedido: {pedido_id}")
-
-                if pedido_id:
-                    try:
-                        pedido = Pedido.objects.get(id=pedido_id)
-                        
-                        if status == 'approved':
-                            pedido.status = 'pago'
-                            pedido.payment_id = payment_id
-                            # Reservar estoque
-                            for item in pedido.itens.all():
-                                item.produto.reservar_estoque(item.quantidade)
-                            logger.info(f"✅ Pedido #{pedido_id} marcado como pago")
-                            
-                        elif status in ['cancelled', 'rejected']:
-                            pedido.status = 'cancelado'
-                            pedido.payment_id = payment_id
-                            logger.info(f"❌ Pedido #{pedido_id} marcado como cancelado")
-                            
-                        pedido.save()
-
-                    except Pedido.DoesNotExist:
-                        logger.error(f"📦 Pedido {pedido_id} não encontrado")
-
-            except Exception as e:
-                logger.error(f"🔧 Erro ao processar pagamento {payment_id}: {str(e)}")
-
+            if pedido_id:
+                try:
+                    pedido = Pedido.objects.get(id=pedido_id)
+                    if status == 'approved':
+                        pedido.status = 'pago'
+                        for item in pedido.itens.all():
+                            item.produto.reservar_estoque(item.quantidade)
+                        if pedido.cupom:
+                            CupomUso.objects.create(cupom=pedido.cupom, pedido=pedido)
+                    elif status in ['cancelled', 'rejected']:
+                        pedido.status = 'cancelado'
+                    pedido.save()
+                except Pedido.DoesNotExist:
+                    pass
         return JsonResponse({'status': 'processed'})
-
     except Exception as e:
-        logger.error(f"💥 Erro no webhook: {str(e)}")
+        logger.error(f"Webhook error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
 
 # ===============================
-# VIEWS DE REDIRECIONAMENTO MELHORADAS
+# VIEWS DE REDIRECIONAMENTO
 # ===============================
 def compra_confirmada(request):
-    """
-    Página de confirmação de compra - Melhorada
-    """
     pedido_id = request.GET.get('pedido_id')
     payment_id = request.GET.get('payment_id')
     status = request.GET.get('status', 'approved')
@@ -377,11 +348,9 @@ def compra_confirmada(request):
     pedido = None
     if pedido_id:
         pedido = Pedido.objects.filter(id=pedido_id).first()
-        # Se não encontrou pelo pedido_id, tenta buscar pelo collection_id (Mercado Pago)
         if not pedido and payment_id:
             pedido = Pedido.objects.filter(payment_id=payment_id).first()
     
-    # Se ainda não encontrou o pedido, tenta buscar na sessão ou mostrar página genérica
     if not pedido:
         return render(request, 'compra_confirmada.html', {
             'pedido': None,
@@ -395,9 +364,6 @@ def compra_confirmada(request):
     })
 
 def compra_erro(request):
-    """
-    Página de erro na compra
-    """
     pedido_id = request.GET.get('pedido_id')
     pedido = Pedido.objects.filter(id=pedido_id).first() if pedido_id else None
     
@@ -407,9 +373,6 @@ def compra_erro(request):
     })
 
 def compra_pendente(request):
-    """
-    Página de compra pendente
-    """
     pedido_id = request.GET.get('pedido_id')
     pedido = Pedido.objects.filter(id=pedido_id).first() if pedido_id else None
     
@@ -419,7 +382,7 @@ def compra_pendente(request):
     })
 
 # ===============================
-# VIEWS PRINCIPAIS (MANTIDAS)
+# VIEWS PRINCIPAIS
 # ===============================
 def index(request):
     termo = request.GET.get('search', '').strip()
@@ -454,7 +417,7 @@ def detalhe_pedido(request, pedido_id):
     return render(request, 'detalhe_pedido.html', {'pedido': pedido})
 
 # ===============================
-# APIs AUXILIARES (MANTIDAS)
+# APIs AUXILIARES
 # ===============================
 @require_GET
 def buscar_sugestoes(request):
@@ -502,7 +465,7 @@ def cancelar_pedido_api(request, pedido_id):
     return JsonResponse({'success': False, 'message': 'Não pode ser cancelado'}, status=400)
 
 # ===============================
-# APIs DE ESTOQUE (MANTIDAS)
+# APIs DE ESTOQUE
 # ===============================
 @csrf_exempt
 @require_POST

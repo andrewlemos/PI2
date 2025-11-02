@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
+from django.utils import timezone
 
 
 class Produto(models.Model):
@@ -75,6 +76,92 @@ class Produto(models.Model):
         ]
 
 
+# ===============================
+# NOVO: CUPOM DE DESCONTO
+# ===============================
+class Cupom(models.Model):
+    TIPO_CHOICES = [
+        ('percentual', 'Percentual (%)'),
+        ('fixo', 'Valor Fixo (R$)'),
+    ]
+
+    codigo = models.CharField(
+        max_length=20, 
+        unique=True, 
+        verbose_name='Código do Cupom'
+    )
+    tipo = models.CharField(
+        max_length=20, 
+        choices=TIPO_CHOICES, 
+        default='percentual',
+        verbose_name='Tipo de Desconto'
+    )
+    valor = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+        verbose_name='Valor do Desconto'
+    )
+    ativo = models.BooleanField(default=True, verbose_name='Ativo')
+    data_inicio = models.DateTimeField(default=timezone.now, verbose_name='Válido a partir de')
+    data_fim = models.DateTimeField(null=True, blank=True, verbose_name='Válido até')
+    limite_uso = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        verbose_name='Limite de Uso (total)'
+    )
+    limite_por_usuario = models.PositiveIntegerField(
+        default=1, 
+        verbose_name='Limite por Usuário'
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.codigo} - {self.valor} ({self.get_tipo_display()})"
+
+    def is_valid(self, usuario=None):
+        agora = timezone.now()
+
+        if not self.ativo:
+            return False, "Cupom inativo"
+        if self.data_inicio > agora:
+            return False, "Cupom ainda não começou"
+        if self.data_fim and self.data_fim < agora:
+            return False, "Cupom expirado"
+        if self.limite_uso is not None:
+            usos = self.usos.count()
+            if usos >= self.limite_uso:
+                return False, "Limite de usos atingido"
+
+        if usuario and usuario.is_authenticated:
+            usos_usuario = self.usos.filter(pedido__usuario=usuario).count()
+            if usos_usuario >= self.limite_por_usuario:
+                return False, "Você já usou este cupom"
+
+        return True, "Válido"
+
+    class Meta:
+        verbose_name = 'Cupom de Desconto'
+        verbose_name_plural = 'Cupons de Desconto'
+        ordering = ['-criado_em']
+
+
+class CupomUso(models.Model):
+    cupom = models.ForeignKey(Cupom, related_name='usos', on_delete=models.CASCADE)
+    pedido = models.OneToOneField('Pedido', on_delete=models.CASCADE, related_name='cupom_uso')
+    usado_em = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.cupom.codigo} usado no pedido #{self.pedido.id}"
+
+    class Meta:
+        verbose_name = 'Uso de Cupom'
+        verbose_name_plural = 'Usos de Cupom'
+
+
+# ===============================
+# PEDIDO - COM CUPOM
+# ===============================
 class Pedido(models.Model):
     STATUS_CHOICES = [
         ('pendente', 'Pendente'),
@@ -87,7 +174,6 @@ class Pedido(models.Model):
         ('reembolsado', 'Reembolsado'),
     ]
     
-    # CORRIGIDO: usuario pode ser NULL (para visitantes)
     usuario = models.ForeignKey(
         User, 
         on_delete=models.SET_NULL,
@@ -113,18 +199,8 @@ class Pedido(models.Model):
     atualizado_em = models.DateTimeField(auto_now=True, verbose_name='Última Atualização')
     
     # Integração com Mercado Pago
-    id_mercado_pago = models.CharField(
-        max_length=100, 
-        blank=True,
-        default='',
-        verbose_name='ID do Mercado Pago'
-    )
-    preference_id = models.CharField(
-        max_length=100, 
-        blank=True,
-        default='',
-        verbose_name='Preference ID'
-    )
+    id_mercado_pago = models.CharField(max_length=100, blank=True, default='', verbose_name='ID do Mercado Pago')
+    preference_id = models.CharField(max_length=100, blank=True, default='', verbose_name='Preference ID')
     
     # Campos de entrega
     nome_entrega = models.CharField(max_length=100, default='', verbose_name='Nome para Entrega')
@@ -141,15 +217,33 @@ class Pedido(models.Model):
     observacoes = models.TextField(blank=True, default='', verbose_name='Observações do Pedido')
     dados_entrega = models.JSONField(blank=True, null=True, default=dict, verbose_name='Dados de Entrega Completos')
 
+    # NOVO: CUPOM
+    cupom = models.ForeignKey(
+        Cupom, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='pedidos',
+        verbose_name='Cupom Aplicado'
+    )
+    desconto_cupom = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        verbose_name='Desconto do Cupom'
+    )
+
     def __str__(self):
         usuario_nome = self.usuario.username if self.usuario else "Visitante"
         return f"Pedido #{self.id} - {usuario_nome} - {self.get_status_display()}"
 
     def calcular_total(self):
-        total = sum(item.subtotal() for item in self.itens.all())
-        self.valor_total = total
+        """Calcula total com desconto do cupom"""
+        subtotal = sum(item.subtotal() for item in self.itens.all())
+        desconto = self.desconto_cupom or 0
+        self.valor_total = max(subtotal - desconto, 0)
         self.save()
-        return total
+        return self.valor_total
 
     def endereco_completo(self):
         endereco = f"{self.endereco}, {self.numero}"
