@@ -2,26 +2,27 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+import json
 
 
 class Produto(models.Model):
     nome = models.CharField(max_length=100, verbose_name='Nome do Produto')
     descricao = models.TextField(blank=True, verbose_name='Descrição')
     preco = models.DecimalField(
-        max_digits=10, 
+        max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0.01)],
         verbose_name='Preço'
     )
     preco_original = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        null=True, 
+        max_digits=10,
+        decimal_places=2,
+        null=True,
         blank=True,
         verbose_name='Preço Original'
     )
     desconto = models.IntegerField(
-        null=True, 
+        null=True,
         blank=True,
         validators=[MinValueValidator(0)],
         verbose_name='Desconto (%)'
@@ -32,8 +33,8 @@ class Produto(models.Model):
         verbose_name='Quantidade em Estoque'
     )
     imagem = models.ImageField(
-        upload_to='produtos/%Y/%m/%d/', 
-        blank=True, 
+        upload_to='produtos/%Y/%m/%d/',
+        blank=True,
         null=True,
         verbose_name='Imagem do Produto'
     )
@@ -77,7 +78,7 @@ class Produto(models.Model):
 
 
 # ===============================
-# NOVO: CUPOM DE DESCONTO
+# CUPOM DE DESCONTO (CORRIGIDO)
 # ===============================
 class Cupom(models.Model):
     TIPO_CHOICES = [
@@ -86,32 +87,32 @@ class Cupom(models.Model):
     ]
 
     codigo = models.CharField(
-        max_length=20, 
-        unique=True, 
+        max_length=20,
+        unique=True,
         verbose_name='Código do Cupom'
     )
     tipo = models.CharField(
-        max_length=20, 
-        choices=TIPO_CHOICES, 
+        max_length=20,
+        choices=TIPO_CHOICES,
         default='percentual',
         verbose_name='Tipo de Desconto'
     )
     valor = models.DecimalField(
-        max_digits=10, 
+        max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0.01)],
         verbose_name='Valor do Desconto'
     )
     ativo = models.BooleanField(default=True, verbose_name='Ativo')
-    data_inicio = models.DateTimeField(default=timezone.now, verbose_name='Válido a partir de')
-    data_fim = models.DateTimeField(null=True, blank=True, verbose_name='Válido até')
+    data_inicio = models.DateField(default=timezone.now, verbose_name='Válido a partir de')  # ← DateField
+    data_fim = models.DateField(null=True, blank=True, verbose_name='Válido até')  # ← DateField
     limite_uso = models.PositiveIntegerField(
-        null=True, 
-        blank=True, 
+        null=True,
+        blank=True,
         verbose_name='Limite de Uso (total)'
     )
     limite_por_usuario = models.PositiveIntegerField(
-        default=1, 
+        default=1,
         verbose_name='Limite por Usuário'
     )
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -120,13 +121,13 @@ class Cupom(models.Model):
         return f"{self.codigo} - {self.valor} ({self.get_tipo_display()})"
 
     def is_valid(self, usuario=None):
-        agora = timezone.now()
+        agora = timezone.now().date()  # ← .date() aqui!
 
         if not self.ativo:
             return False, "Cupom inativo"
-        if self.data_inicio > agora:
+        if self.data_inicio and agora < self.data_inicio:
             return False, "Cupom ainda não começou"
-        if self.data_fim and self.data_fim < agora:
+        if self.data_fim and agora > self.data_fim:
             return False, "Cupom expirado"
         if self.limite_uso is not None:
             usos = self.usos.count()
@@ -160,7 +161,7 @@ class CupomUso(models.Model):
 
 
 # ===============================
-# PEDIDO - COM CUPOM
+# PEDIDO (ENDEREÇO + CUPOM + JSON)
 # ===============================
 class Pedido(models.Model):
     STATUS_CHOICES = [
@@ -173,9 +174,9 @@ class Pedido(models.Model):
         ('cancelado', 'Cancelado'),
         ('reembolsado', 'Reembolsado'),
     ]
-    
+
     usuario = models.ForeignKey(
-        User, 
+        User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -183,52 +184,52 @@ class Pedido(models.Model):
         verbose_name='Usuário'
     )
     status = models.CharField(
-        max_length=20, 
-        choices=STATUS_CHOICES, 
+        max_length=20,
+        choices=STATUS_CHOICES,
         default='pendente',
         verbose_name='Status do Pedido'
     )
     valor_total = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
+        max_digits=10,
+        decimal_places=2,
         default=0,
         validators=[MinValueValidator(0)],
         verbose_name='Valor Total'
     )
     criado_em = models.DateTimeField(auto_now_add=True, verbose_name='Data de Criação')
     atualizado_em = models.DateTimeField(auto_now=True, verbose_name='Última Atualização')
-    
-    # Integração com Mercado Pago
+
+    # Mercado Pago
     id_mercado_pago = models.CharField(max_length=100, blank=True, default='', verbose_name='ID do Mercado Pago')
     preference_id = models.CharField(max_length=100, blank=True, default='', verbose_name='Preference ID')
-    
-    # Campos de entrega
-    nome_entrega = models.CharField(max_length=100, default='', verbose_name='Nome para Entrega')
-    email_entrega = models.EmailField(default='exemplo@email.com', verbose_name='E-mail para Contato')
+
+    # === CAMPOS DE ENTREGA (CORRIGIDOS E OTIMIZADOS) ===
+    nome_entrega = models.CharField(max_length=200, blank=True, default='', verbose_name='Nome para Entrega')
+    email_entrega = models.EmailField(blank=True, default='', verbose_name='E-mail para Contato')
     telefone_entrega = models.CharField(max_length=20, blank=True, default='', verbose_name='Telefone')
-    endereco = models.CharField(max_length=200, default='', verbose_name='Endereço')
-    numero = models.CharField(max_length=10, default='S/N', verbose_name='Número')
+    endereco = models.CharField(max_length=300, blank=True, default='', verbose_name='Endereço')
+    numero = models.CharField(max_length=20, blank=True, default='S/N', verbose_name='Número')
     complemento = models.CharField(max_length=100, blank=True, default='', verbose_name='Complemento')
-    bairro = models.CharField(max_length=100, default='', verbose_name='Bairro')
-    cidade = models.CharField(max_length=50, default='', verbose_name='Cidade')
-    estado = models.CharField(max_length=50, default='', verbose_name='Estado')
-    cep = models.CharField(max_length=9, default='00000-000', verbose_name='CEP')
-    
+    bairro = models.CharField(max_length=100, blank=True, default='', verbose_name='Bairro')
+    cidade = models.CharField(max_length=100, blank=True, default='', verbose_name='Cidade')
+    estado = models.CharField(max_length=2, blank=True, default='', verbose_name='Estado (UF)')
+    cep = models.CharField(max_length=9, blank=True, default='', verbose_name='CEP')
+
     observacoes = models.TextField(blank=True, default='', verbose_name='Observações do Pedido')
     dados_entrega = models.JSONField(blank=True, null=True, default=dict, verbose_name='Dados de Entrega Completos')
 
-    # NOVO: CUPOM
+    # CUPOM
     cupom = models.ForeignKey(
-        Cupom, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        Cupom,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='pedidos',
         verbose_name='Cupom Aplicado'
     )
     desconto_cupom = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
+        max_digits=10,
+        decimal_places=2,
         default=0,
         verbose_name='Desconto do Cupom'
     )
@@ -238,7 +239,6 @@ class Pedido(models.Model):
         return f"Pedido #{self.id} - {usuario_nome} - {self.get_status_display()}"
 
     def calcular_total(self):
-        """Calcula total com desconto do cupom"""
         subtotal = sum(item.subtotal() for item in self.itens.all())
         desconto = self.desconto_cupom or 0
         self.valor_total = max(subtotal - desconto, 0)
@@ -246,11 +246,11 @@ class Pedido(models.Model):
         return self.valor_total
 
     def endereco_completo(self):
-        endereco = f"{self.endereco}, {self.numero}"
+        parts = [self.endereco, self.numero]
         if self.complemento:
-            endereco += f" - {self.complemento}"
-        endereco += f" - {self.bairro}, {self.cidade} - {self.estado}, CEP: {self.cep}"
-        return endereco
+            parts.append(self.complemento)
+        parts.extend([self.bairro, f"{self.cidade}-{self.estado}", f"CEP: {self.cep}"])
+        return ", ".join(filter(None, parts))
 
     def pode_alterar_status(self, novo_status):
         fluxo_valido = {
