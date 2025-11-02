@@ -141,19 +141,6 @@ CupomUso: Cupom, Pedido, Data
 
 ---
 
-## Produção
-
-DEBUG=False  
-ALLOWED_HOSTS=seudominio.com  
-MP_ACCESS_TOKEN=SEU_TOKEN_REAL
-
-- Use PostgreSQL  
-- Sirva mídia/estáticos com Nginx  
-- Use Gunicorn  
-- Configure SMTP real
-
-
----
 
 ## Imagens
 
